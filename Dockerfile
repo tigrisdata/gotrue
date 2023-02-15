@@ -20,9 +20,6 @@ RUN adduser -D -u 1000 netlify
 
 RUN apk add --no-cache ca-certificates
 COPY --from=build /go/src/github.com/netlify/gotrue/gotrue /usr/local/bin/gotrue
-COPY --from=build /go/src/github.com/netlify/gotrue/migrations /usr/local/etc/gotrue/migrations/
-
-ENV GOTRUE_DB_MIGRATIONS_PATH /usr/local/etc/gotrue/migrations
 
 USER netlify
 CMD ["gotrue"]
