@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/api/provider"
 	"github.com/netlify/gotrue/models"
 	"github.com/sirupsen/logrus"
@@ -242,9 +242,7 @@ func (a *API) processInvite(ctx context.Context, database *tigris.Database, user
 		return nil, badRequestError("Invited email does not match emails from external provider").WithInternalMessage("invited=%s external=%s", user.Email, strings.Join(emails, ", "))
 	}
 
-	if err := user.UpdateAppMetaData(ctx, database, map[string]interface{}{
-		"provider": providerType,
-	}); err != nil {
+	if err := user.UpdateAppMetaData(ctx, database, &models.UserAppMetadata{Provider: providerType}); err != nil {
 		return nil, internalServerError("Database error updating user").WithInternalError(err)
 	}
 

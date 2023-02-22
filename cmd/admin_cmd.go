@@ -1,15 +1,17 @@
 package cmd
 
 import (
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"context"
+
 	"github.com/google/uuid"
+	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
+	"github.com/netlify/gotrue/models"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
-	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/fields"
+	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 var autoconfirm, isSuperAdmin, isAdmin bool
@@ -80,7 +82,11 @@ func adminCreateUser(globalConfig *conf.GlobalConfiguration, config *conf.Config
 		logrus.Fatalf("Error checking user email: %+v", err)
 	}
 
-	user, err := models.NewUser(iid, args[0], args[1], aud, nil)
+	encrypter := &crypto.AESBlockEncrypter{
+		Key: globalConfig.DB.EncryptionKey,
+	}
+
+	user, err := models.NewUser(iid, args[0], args[1], aud, nil, encrypter)
 	if err != nil {
 		logrus.Fatalf("Error creating new user: %+v", err)
 	}

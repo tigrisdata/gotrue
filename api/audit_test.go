@@ -8,33 +8,36 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"context"
+
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 type AuditTestSuite struct {
 	suite.Suite
-	API    *API
-	Config *conf.Configuration
-
+	API        *API
+	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	token      string
 	instanceID uuid.UUID
 }
 
 func TestAudit(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &AuditTestSuite{
 		API:        api,
 		Config:     config,
+		Encrypter:  &crypto.AESBlockEncrypter{Key: globalConf.DB.EncryptionKey},
 		instanceID: instanceID,
 	}
 
@@ -47,7 +50,7 @@ func (ts *AuditTestSuite) SetupTest() {
 }
 
 func (ts *AuditTestSuite) makeSuperAdmin(email string) string {
-	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"})
+	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	u.IsSuperAdmin = true
@@ -136,7 +139,7 @@ func (ts *AuditTestSuite) TestAuditFilters() {
 
 func (ts *AuditTestSuite) prepareDeleteEvent() {
 	// DELETE USER
-	u, err := models.NewUser(ts.instanceID, "test-delete@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test-delete@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -144,7 +147,7 @@ func (ts *AuditTestSuite) prepareDeleteEvent() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/users/%s", u.ID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/users/%s", u.Email), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 
 	ts.API.handler.ServeHTTP(w, req)

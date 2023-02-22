@@ -2,33 +2,47 @@ package models
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/storage/namespace"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/tigrisdata/tigris-client-go/fields"
 	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const SystemUserID = "0"
 
 var SystemUserUUID = uuid.Nil
 
-// User respresents a registered user with email/password authentication
-type User struct {
-	InstanceID uuid.UUID `json:"instance_id" db:"instance_id"`
-	ID         uuid.UUID `json:"id" db:"id" tigris:"primaryKey"`
+type UserAppMetadata struct {
+	TigrisNamespace string   `json:"tigris_namespace,omitempty"`
+	TigrisProject   string   `json:"tigris_project,omitempty"`
+	CreatedBy       string   `json:"created_by,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	Provider        string   `json:"provider,omitempty"`
+	Roles           []string `json:"roles,omitempty"`
+	Custom          JSONMap  `json:"custom,omitempty"`
+}
 
-	Aud               string     `json:"aud" db:"aud"`
-	Role              string     `json:"role" db:"role"`
-	Email             string     `json:"email" db:"email"`
-	EncryptedPassword string     `json:"encrypted_password" db:"encrypted_password"`
-	ConfirmedAt       *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
-	InvitedAt         *time.Time `json:"invited_at,omitempty" db:"invited_at"`
+// User represents a registered user with email/password authentication
+type User struct {
+	InstanceID        uuid.UUID `json:"instance_id" db:"instance_id"`
+	ID                uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1"`
+	Aud               string    `json:"aud" db:"aud"`
+	Role              string    `json:"role" db:"role"`
+	Email             string    `json:"email" db:"email" tigris:"primaryKey:2"`
+	EncryptedPassword string    `json:"encrypted_password" db:"encrypted_password"`
+	EncryptionIV      string    `json:"encryption_iv" db:"encryption_iv"`
+
+	ConfirmedAt *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
+	InvitedAt   *time.Time `json:"invited_at,omitempty" db:"invited_at"`
 
 	ConfirmationToken  string     `json:"confirmation_token" db:"confirmation_token"`
 	ConfirmationSentAt *time.Time `json:"confirmation_sent_at,omitempty" db:"confirmation_sent_at"`
@@ -42,25 +56,23 @@ type User struct {
 
 	LastSignInAt *time.Time `json:"last_sign_in_at,omitempty" db:"last_sign_in_at"`
 
-	AppMetaData  JSONMap `json:"app_metadata" db:"app_metadata"`
-	UserMetaData JSONMap `json:"user_metadata" db:"user_metadata"`
+	AppMetaData  *UserAppMetadata `json:"app_metadata" db:"app_metadata"`
+	UserMetaData JSONMap          `json:"user_metadata" db:"user_metadata"`
 
 	IsSuperAdmin bool `json:"is_super_admin" db:"is_super_admin"`
 
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" tigris:"default:now(),createdAt"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at" tigris:"default:now(),updatedAt"`
 }
 
 // NewUser initializes a new user from an email, password and user data.
-func NewUser(instanceID uuid.UUID, email, password, aud string, userData map[string]interface{}) (*User, error) {
+func NewUser(instanceID uuid.UUID, email, password, aud string, userData map[string]interface{}, encrypter *crypto.AESBlockEncrypter) (*User, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return nil, errors.Wrap(err, "Error generating unique id")
 	}
-	pw, err := hashPassword(password)
-	if err != nil {
-		return nil, err
-	}
+	var pw, iv string
+	pw, iv = encrypter.Encrypt(password)
 
 	user := &User{
 		InstanceID:        instanceID,
@@ -69,6 +81,28 @@ func NewUser(instanceID uuid.UUID, email, password, aud string, userData map[str
 		Email:             email,
 		UserMetaData:      userData,
 		EncryptedPassword: pw,
+		EncryptionIV:      iv,
+	}
+
+	return user, nil
+}
+
+// NewUserWithAppData initializes a new user from an email, password and user data.
+func NewUserWithAppData(instanceID uuid.UUID, email, password, aud string, userData map[string]interface{}, appData UserAppMetadata, encrypter *crypto.AESBlockEncrypter) (*User, error) {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return nil, errors.Wrap(err, "Error generating unique id")
+	}
+	pw, iv := encrypter.Encrypt(password)
+	user := &User{
+		InstanceID:        instanceID,
+		ID:                id,
+		Aud:               aud,
+		Email:             email,
+		UserMetaData:      userData,
+		AppMetaData:       &appData,
+		EncryptedPassword: pw,
+		EncryptionIV:      iv,
 	}
 
 	return user, nil
@@ -171,16 +205,50 @@ func (u *User) UpdateUserMetaData(ctx context.Context, database *tigris.Database
 }
 
 // UpdateAppMetaData updates all app data from a map of updates
-func (u *User) UpdateAppMetaData(ctx context.Context, database *tigris.Database, updates map[string]interface{}) error {
+func (u *User) UpdateAppMetaData(ctx context.Context, database *tigris.Database, updates *UserAppMetadata) error {
+
+	if u.AppMetaData != nil {
+		// custom process custom field
+		for k, v := range updates.Custom {
+			if v == nil {
+				delete(u.AppMetaData.Custom, k)
+			} else {
+				if u.AppMetaData.Custom == nil {
+					u.AppMetaData.Custom = make(map[string]interface{})
+				}
+				u.AppMetaData.Custom[k] = v
+			}
+		}
+		u.AppMetaData.Roles = updates.Roles
+		u.AppMetaData.Provider = updates.Provider
+		u.AppMetaData.Name = updates.Name
+		u.AppMetaData.Description = updates.Description
+		u.AppMetaData.TigrisNamespace = updates.TigrisNamespace
+		u.AppMetaData.TigrisProject = updates.TigrisProject
+	} else {
+		u.AppMetaData = updates
+	}
+
+	_, err := tigris.GetCollection[User](database).Update(ctx, filter.Eq("id", u.ID.String()), fields.Set("app_metadata", u.AppMetaData))
+	return err
+}
+
+// PatchAppMetaData updates all app data from a map of updates, it leaves rest unset fields untouched.
+func (u *User) PatchAppMetaData(ctx context.Context, database *tigris.Database, updates *UserAppMetadata) error {
 	if u.AppMetaData == nil {
 		u.AppMetaData = updates
 	} else if updates != nil {
-		for key, value := range updates {
-			if value != nil {
-				u.AppMetaData[key] = value
-			} else {
-				delete(u.AppMetaData, key)
-			}
+		if updates.Name != "" {
+			u.AppMetaData.Name = updates.Name
+		}
+		if updates.Description != "" {
+			u.AppMetaData.Description = updates.Description
+		}
+		if updates.Roles != nil {
+			u.AppMetaData.Roles = updates.Roles
+		}
+		if updates.Custom != nil {
+			u.AppMetaData.Custom = updates.Custom
 		}
 	}
 
@@ -194,30 +262,25 @@ func (u *User) SetEmail(ctx context.Context, database *tigris.Database, email st
 	return err
 }
 
-// hashPassword generates a hashed password from a plaintext string
-func hashPassword(password string) (string, error) {
-	pw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(pw), nil
-}
-
-func (u *User) UpdatePassword(ctx context.Context, database *tigris.Database, password string) error {
-	pw, err := hashPassword(password)
-	if err != nil {
-		return err
-	}
+func (u *User) UpdatePassword(ctx context.Context, database *tigris.Database, encrypter *crypto.AESBlockEncrypter, password string) error {
+	pw, iv := encrypter.Encrypt(password)
 	u.EncryptedPassword = pw
+	u.EncryptionIV = iv
 
-	_, err = tigris.GetCollection[User](database).Update(ctx, filter.EqUUID("id", u.ID), fields.Set("encrypted_password", u.EncryptedPassword))
+	_, err := tigris.GetCollection[User](database).Update(ctx, filter.EqUUID("id", u.ID), fields.Set("encrypted_password", u.EncryptedPassword).Set("encryption_iv", u.EncryptionIV))
 	return err
 }
 
 // Authenticate a user from a password
-func (u *User) Authenticate(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password))
-	return err == nil
+func (u *User) Authenticate(password string, encrypter *crypto.AESBlockEncrypter) bool {
+	ivBytes, err := base64.StdEncoding.DecodeString(u.EncryptionIV)
+	if err != nil {
+		logrus.WithField("email", u.Email).Error("Failed to retrieve existing IV for user")
+		return false
+	}
+	encryptedPassword, _ := encrypter.EncryptWithIV(password, ivBytes)
+	return u.EncryptedPassword == encryptedPassword
+
 }
 
 // Confirm resets the confimation token and the confirm timestamp
@@ -293,6 +356,11 @@ func FindUserByEmailAndAudience(ctx context.Context, database *tigris.Database, 
 	return findUser(ctx, database, filter.And(filter.EqUUID("instance_id", instanceID), filter.Eq("email", email), filter.Eq("aud", aud)))
 }
 
+// FindUserByIdAndAudience finds a user with the matching email and audience.
+func FindUserByIdAndAudience(ctx context.Context, database *tigris.Database, instanceID, id uuid.UUID, aud string) (*User, error) {
+	return findUser(ctx, database, filter.And(filter.EqUUID("instance_id", instanceID), filter.Eq("id", id), filter.Eq("aud", aud)))
+}
+
 // FindUserByID finds a user matching the provided ID.
 func FindUserByID(ctx context.Context, database *tigris.Database, id uuid.UUID) (*User, error) {
 	return findUser(ctx, database, filter.EqUUID("id", id))
@@ -301,6 +369,11 @@ func FindUserByID(ctx context.Context, database *tigris.Database, id uuid.UUID) 
 // FindUserByInstanceIDAndID finds a user matching the provided ID.
 func FindUserByInstanceIDAndID(ctx context.Context, database *tigris.Database, instanceID, id uuid.UUID) (*User, error) {
 	return findUser(ctx, database, filter.And(filter.EqUUID("instance_id", instanceID), filter.EqUUID("id", id)))
+}
+
+// FindUserByInstanceIDAndEmail finds a user matching the provided ID.
+func FindUserByInstanceIDAndEmail(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, email string) (*User, error) {
+	return findUser(ctx, database, filter.And(filter.EqUUID("instance_id", instanceID), filter.EqString("email", email)))
 }
 
 // FindUserByRecoveryToken finds a user with the matching recovery token.
@@ -328,7 +401,7 @@ func FindUserWithRefreshToken(ctx context.Context, database *tigris.Database, to
 }
 
 // FindUsersInAudience finds users with the matching audience.
-func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string) ([]*User, error) {
+func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string, tigrisNamespace string, createdBy string, encrypter *crypto.AESBlockEncrypter) ([]*User, error) {
 	//ToDo: sorting
 	/**
 	if sortParams != nil && len(sortParams.Fields) > 0 {
@@ -347,7 +420,14 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 		err = q.All(&users)
 	}*/
 
-	it, err := tigris.GetCollection[User](database).Read(ctx, filter.And(filter.EqUUID("instance_id", instanceID), filter.Eq("aud", aud)))
+	listUsersFilter := filter.Eq("aud", aud)
+	if tigrisNamespace != "" {
+		listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_namespace", tigrisNamespace))
+	}
+	if createdBy != "" {
+		listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.created_by", createdBy))
+	}
+	it, err := tigris.GetCollection[User](database).Read(ctx, listUsersFilter)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading user failed")
 	}
@@ -357,6 +437,7 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	var user User
 	for it.Next(&user) {
 		u := user
+		u.EncryptedPassword = encrypter.Decrypt(u.EncryptedPassword, u.EncryptionIV)
 		if qfilter != "" {
 			if len(u.Email) > 0 && strings.Contains(strings.ToLower(u.Email), qfilter) {
 				users = append(users, &u)

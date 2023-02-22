@@ -3,20 +3,23 @@ package models
 import (
 	"testing"
 
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/storage/test"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 const modelsTestConfig = "../hack/test.env"
 
 type UserTestSuite struct {
 	suite.Suite
-	db *tigris.Database
+	db        *tigris.Database
+	encrypter *crypto.AESBlockEncrypter
 }
 
 func (ts *UserTestSuite) SetupTest() {
@@ -34,7 +37,8 @@ func TestUser(t *testing.T) {
 	require.NoError(t, err)
 
 	ts := &UserTestSuite{
-		db: database,
+		db:        database,
+		encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey},
 	}
 	defer tigrisClient.Close()
 
@@ -42,28 +46,31 @@ func TestUser(t *testing.T) {
 }
 
 func (ts *UserTestSuite) TestUpdateAppMetadata() {
-	u, err := NewUser(uuid.Nil, "", "", "", nil)
+	u, err := NewUser(uuid.Nil, "", "", "", nil, ts.encrypter)
 	require.NoError(ts.T(), err)
 
 	ctx := context.TODO()
-	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, make(map[string]interface{})))
+	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, &UserAppMetadata{}))
 
 	require.NotNil(ts.T(), u.AppMetaData)
 
-	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, map[string]interface{}{
-		"foo": "bar",
-	}))
+	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, &UserAppMetadata{
+		Custom: map[string]interface{}{
+			"foo": "bar",
+		}}))
 
-	require.Equal(ts.T(), "bar", u.AppMetaData["foo"])
-	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, map[string]interface{}{
-		"foo": nil,
+	require.Equal(ts.T(), "bar", u.AppMetaData.Custom["foo"])
+	require.NoError(ts.T(), u.UpdateAppMetaData(ctx, ts.db, &UserAppMetadata{
+		Custom: map[string]interface{}{
+			"foo": nil,
+		},
 	}))
-	require.Len(ts.T(), u.AppMetaData, 0)
-	require.Equal(ts.T(), nil, u.AppMetaData["foo"])
+	require.Len(ts.T(), u.AppMetaData.Custom, 0)
+	require.Equal(ts.T(), nil, u.AppMetaData.Custom["foo"])
 }
 
 func (ts *UserTestSuite) TestUpdateUserMetadata() {
-	u, err := NewUser(uuid.Nil, "", "", "", nil)
+	u, err := NewUser(uuid.Nil, "", "", "", nil, ts.encrypter)
 	require.NoError(ts.T(), err)
 
 	ctx := context.TODO()
@@ -106,7 +113,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 	u := ts.createUser()
 
 	ctx := context.TODO()
-	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "")
+	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 
@@ -114,7 +121,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 		Page:    1,
 		PerPage: 50,
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "")
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 	//ToDo: pagination related
@@ -125,7 +132,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 			SortField{Name: "created_at", Dir: Descending},
 		},
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "")
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 }
@@ -199,7 +206,7 @@ func (ts *UserTestSuite) createUser() *User {
 }
 
 func (ts *UserTestSuite) createUserWithEmail(email string) *User {
-	user, err := NewUser(uuid.Nil, email, "secret", "test", nil)
+	user, err := NewUser(uuid.Nil, email, "secret", "test", nil, ts.encrypter)
 	require.NoError(ts.T(), err)
 
 	_, err = tigris.GetCollection[User](ts.db).Insert(context.TODO(), user)

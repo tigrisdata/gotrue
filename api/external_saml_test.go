@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/models"
 	"github.com/russellhaering/gosaml2/types"
 	dsig "github.com/russellhaering/goxmldsig"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -33,7 +33,7 @@ type ExternalSamlTestSuite struct {
 }
 
 func TestExternalSaml(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, _, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &ExternalSamlTestSuite{

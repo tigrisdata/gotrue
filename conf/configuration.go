@@ -35,9 +35,13 @@ type SamlProviderConfiguration struct {
 
 // DBConfiguration holds all the database related configuration.
 type DBConfiguration struct {
-	URL       string `json:"url" envconfig:"DATABASE_URL" required:"true"`
-	Namespace string `json:"namespace"`
-	Project   string `json:"project" required:"true"`
+	URL           string `json:"url" envconfig:"GOTRUE_DB_URL" required:"true"`
+	Namespace     string `json:"namespace"`
+	Project       string `json:"project" required:"true"`
+	Branch        string `json:"db_branch" envconfig:"GOTRUE_DB_BRANCH" required:"true"`
+	ClientId      string `json:"client_id" envconfig:"GOTRUE_DB_CLIENT_ID"`
+	ClientSecret  string `json:"client_secret" envconfig:"GOTRUE_DB_CLIENT_SECRET"`
+	EncryptionKey string `json:"encryption_key" envconfig:"GOTRUE_DB_ENCRYPTION_KEY"`
 }
 
 // JWTConfiguration holds all the JWT related configuration.

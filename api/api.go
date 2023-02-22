@@ -16,17 +16,18 @@ import (
 	"github.com/didip/tollbooth/v5"
 	"github.com/didip/tollbooth/v5/limiter"
 	"github.com/go-chi/chi"
-	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/imdario/mergo"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/mailer"
+	"github.com/netlify/gotrue/models"
 	"github.com/rs/cors"
 	"github.com/sebest/xff"
 	"github.com/sirupsen/logrus"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"github.com/netlify/gotrue/models"
 )
 
 const (
@@ -40,6 +41,7 @@ var bearerRegexp = regexp.MustCompile(`^(?:B|b)earer (\S+$)`)
 type API struct {
 	handler     http.Handler
 	db          *tigris.Database
+	encrypter   *crypto.AESBlockEncrypter
 	config      *conf.GlobalConfiguration
 	tokenSigner *TokenSigner
 	version     string
@@ -50,6 +52,7 @@ type TokenSigner struct {
 	jwtConfig  *conf.JWTConfiguration
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
+	kid        string
 }
 
 // NewTokenSigner - Returns new instance of TokenSinger
@@ -92,11 +95,16 @@ func (t *TokenSigner) init() {
 		panic(e.Error())
 	}
 	t.publicKey = publicKey
+	t.kid, err = getKeyID(publicKey)
+	if err != nil {
+		panic(e.Error())
+	}
 }
 
 // Signs the token with RSA algorithm
 func (t *TokenSigner) signUsingRsa(token *jwt.Token) (string, error) {
 	claims := token.Claims.(*GoTrueClaims)
+	token.Header["kid"] = t.kid
 	claims.Issuer = t.jwtConfig.Issuer
 	return token.SignedString(t.privateKey)
 }
@@ -147,12 +155,14 @@ func NewAPI(globalConfig *conf.GlobalConfiguration, config *conf.Configuration, 
 
 // NewAPIWithVersion creates a new REST API using the specified version
 func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfiguration, config *conf.Configuration, db *tigris.Database, version string) *API {
-	api := &API{config: globalConfig, db: db, version: version, tokenSigner: NewTokenSigner(config)}
+	api := &API{config: globalConfig, db: db, version: version, tokenSigner: NewTokenSigner(config), encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey}}
 	jwks, err := NewJKWS(globalConfig, config, version)
 	if err != nil {
 		log.Fatalf("Couldn't construct JWKS %v", err)
 		return nil
 	}
+
+	openidConf := NewOpenIdConfiguration(globalConfig, config, version)
 	xffmw, _ := xff.Default()
 	logger := newStructuredLogger(logrus.StandardLogger())
 
@@ -207,6 +217,7 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 		})
 
 		r.Route("/.well-known", func(r *router) {
+			r.Get("/openid-configuration", openidConf.getConfiguration)
 			r.Get("/jwks.json", jwks.getJWKS)
 		})
 
@@ -221,7 +232,7 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 				r.Get("/", api.adminUsers)
 				r.With(api.requireEmailProvider).Post("/", api.adminUserCreate)
 
-				r.Route("/{user_id}", func(r *router) {
+				r.Route("/{email}", func(r *router) {
 					r.Use(api.loadUser)
 
 					r.Get("/", api.adminUserGet)
@@ -288,7 +299,7 @@ func NewAPIFromConfigFile(filename string, version string) (*API, *conf.Configur
 
 	db, err := tigris.OpenDatabase(context.TODO(), nil, &models.AuditLogEntry{})
 	if err != nil {
-		logrus.Fatalf("Error opening database: %+v", err)
+		logrus.Fatalf("Error opening database 2 : %+v", err)
 	}
 
 	return NewAPIWithVersion(ctx, globalConfig, config, db, version), config, nil
