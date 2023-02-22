@@ -3,18 +3,21 @@ package models
 import (
 	"testing"
 
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/storage/test"
+	"context"
+
 	"github.com/google/uuid"
+	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
+	"github.com/netlify/gotrue/storage/test"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"context"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 type RefreshTokenTestSuite struct {
 	suite.Suite
-	db *tigris.Database
+	db        *tigris.Database
+	encrypter *crypto.AESBlockEncrypter
 }
 
 func (ts *RefreshTokenTestSuite) SetupTest() {
@@ -33,7 +36,8 @@ func TestRefreshToken(t *testing.T) {
 	database, err := tigrisClient.OpenDatabase(context.TODO(), &User{}, &RefreshToken{}, &AuditLogEntry{})
 	require.NoError(t, err)
 	ts := &RefreshTokenTestSuite{
-		db: database,
+		db:        database,
+		encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey},
 	}
 	defer tigrisClient.Close()
 
@@ -85,7 +89,7 @@ func (ts *RefreshTokenTestSuite) createUser() *User {
 }
 
 func (ts *RefreshTokenTestSuite) createUserWithEmail(email string) *User {
-	user, err := NewUser(uuid.Nil, email, "secret", "test", nil)
+	user, err := NewUser(uuid.Nil, email, "secret", "test", nil, ts.encrypter)
 	require.NoError(ts.T(), err)
 
 	_, err = tigris.GetCollection[User](ts.db).Insert(context.TODO(), user)

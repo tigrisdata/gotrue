@@ -6,30 +6,34 @@ import (
 	"net/url"
 	"testing"
 
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"context"
-	"github.com/tigrisdata/tigris-client-go/tigris"
 	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 type ExternalTestSuite struct {
 	suite.Suite
 	API        *API
 	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	instanceID uuid.UUID
 }
 
 func TestExternal(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &ExternalTestSuite{
 		API:        api,
 		Config:     config,
+		Encrypter:  &crypto.AESBlockEncrypter{Key: globalConf.DB.EncryptionKey},
 		instanceID: instanceID,
 	}
 
@@ -51,7 +55,7 @@ func (ts *ExternalTestSuite) createUser(email string, name string, avatar string
 		require.NoError(ts.T(), err, "Error deleting user")
 	}
 
-	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": name, "avatar_url": avatar})
+	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": name, "avatar_url": avatar}, ts.Encrypter)
 
 	if confirmationToken != "" {
 		u.ConfirmationToken = confirmationToken
@@ -71,7 +75,7 @@ func performAuthorizationRequest(ts *ExternalTestSuite, provider string, inviteT
 	}
 
 	req := httptest.NewRequest(http.MethodGet, authorizeURL, nil)
-	req.Header.Set("Referer", "https://example.netlify.com/admin")
+	req.Header.Set("Referer", "https://example.tigrisdata.com/admin")
 	w := httptest.NewRecorder()
 	ts.API.handler.ServeHTTP(w, req)
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/netlify/gotrue/storage/test"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func TestSignupHookSendInstanceID(t *testing.T) {
 	}()
 
 	iid := uuid.Must(uuid.NewRandom())
-	user, err := models.NewUser(iid, "test@truth.com", "thisisapassword", "", nil)
+	user, err := models.NewUser(iid, "test@truth.com", "thisisapassword", "", nil, &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey})
 	require.NoError(t, err)
 
 	var callCount int
@@ -83,7 +84,7 @@ func TestSignupHookFromClaims(t *testing.T) {
 	}()
 
 	iid := uuid.Must(uuid.NewRandom())
-	user, err := models.NewUser(iid, "test@truth.com", "thisisapassword", "", nil)
+	user, err := models.NewUser(iid, "test@truth.com", "thisisapassword", "", nil, &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey})
 	require.NoError(t, err)
 
 	var callCount int

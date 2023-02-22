@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -68,7 +69,7 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 		return oauthError("invalid_grant", "Email not confirmed")
 	}
 
-	if !user.Authenticate(password) {
+	if !user.Authenticate(password, a.encrypter) {
 		return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 	}
 
@@ -164,14 +165,20 @@ func (a *API) RefreshTokenGrant(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 func generateAccessToken(user *models.User, expiresIn time.Duration, config *conf.Configuration, tokenSigner *TokenSigner) (string, error) {
-	tigrisClaims := map[string]interface{}{
-		"n": user.AppMetaData["namespace"],
-		"p": "test-project",
+	var tigrisClaims = make(map[string]interface{})
+	// superadmin doesn't have app metadata
+	if user.AppMetaData != nil {
+		tigrisClaims = map[string]interface{}{
+			"nc": user.AppMetaData.TigrisNamespace,
+			"p":  user.AppMetaData.TigrisProject,
+		}
 	}
 	claims := &GoTrueClaims{
 		StandardClaims: jwt.StandardClaims{
 			Subject:   "gt|" + user.ID.String(), // customize sub b
 			Audience:  user.Aud,
+			Issuer:    fmt.Sprintf("http://%s", config.SiteURL),
+			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: time.Now().Add(expiresIn).Unix(),
 		},
 		TigrisMetadata: tigrisClaims,

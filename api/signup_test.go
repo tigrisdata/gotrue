@@ -9,32 +9,35 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"context"
+
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 type SignupTestSuite struct {
 	suite.Suite
-	API    *API
-	Config *conf.Configuration
-
+	API        *API
+	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	instanceID uuid.UUID
 }
 
 func TestSignup(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &SignupTestSuite{
 		API:        api,
 		Config:     config,
+		Encrypter:  &crypto.AESBlockEncrypter{Key: globalConf.DB.EncryptionKey},
 		instanceID: instanceID,
 	}
 
@@ -74,7 +77,7 @@ func (ts *SignupTestSuite) TestSignup() {
 	assert.Equal(ts.T(), "test@example.com", data.Email)
 	assert.Equal(ts.T(), ts.Config.JWT.Aud, data.Aud)
 	assert.Equal(ts.T(), 1.0, data.UserMetaData["a"])
-	assert.Equal(ts.T(), "email", data.AppMetaData["provider"])
+	assert.Equal(ts.T(), "email", data.AppMetaData.Provider)
 }
 
 func (ts *SignupTestSuite) TestWebhookTriggered() {
@@ -227,7 +230,7 @@ func (ts *SignupTestSuite) TestSignupTwice() {
 }
 
 func (ts *SignupTestSuite) TestVerifySignup() {
-	user, err := models.NewUser(ts.instanceID, "test@example.com", "testing", ts.Config.JWT.Aud, nil)
+	user, err := models.NewUser(ts.instanceID, "test@example.com", "testing", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	user.ConfirmationToken = "asdf3"
 	require.NoError(ts.T(), err)
 

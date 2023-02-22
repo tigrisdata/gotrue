@@ -5,18 +5,19 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/netlify/gotrue/models"
-	"github.com/google/uuid"
 	"context"
+
+	"github.com/google/uuid"
+	"github.com/netlify/gotrue/models"
 )
 
 // UserUpdateParams parameters for updating a user
 type UserUpdateParams struct {
-	Email            string                 `json:"email"`
-	Password         string                 `json:"password"`
-	EmailChangeToken string                 `json:"email_change_token"`
-	Data             map[string]interface{} `json:"data"`
-	AppData          map[string]interface{} `json:"app_metadata,omitempty"`
+	Email            string                  `json:"email"`
+	Password         string                  `json:"password"`
+	EmailChangeToken string                  `json:"email_change_token"`
+	Data             map[string]interface{}  `json:"data"`
+	AppData          *models.UserAppMetadata `json:"app_metadata,omitempty"`
 }
 
 // UserGet returns a user
@@ -85,7 +86,7 @@ func (a *API) UserUpdate(w http.ResponseWriter, r *http.Request) error {
 	err = a.db.Tx(ctx, func(ctx context.Context) error {
 		var terr error
 		if params.Password != "" {
-			if terr = user.UpdatePassword(ctx, a.db, params.Password); terr != nil {
+			if terr = user.UpdatePassword(ctx, a.db, a.encrypter, params.Password); terr != nil {
 				return internalServerError("Error during password storage").WithInternalError(terr)
 			}
 		}
@@ -145,5 +146,6 @@ func (a *API) UserUpdate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	user.EncryptedPassword = a.encrypter.Decrypt(user.EncryptedPassword, user.EncryptionIV)
 	return sendJSON(w, http.StatusOK, user)
 }

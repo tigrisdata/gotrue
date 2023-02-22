@@ -9,13 +9,14 @@ import (
 
 	"github.com/google/uuid"
 
+	"context"
+
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 var testUUID = uuid.Must(uuid.Parse("11111111-1111-1111-1111-111111111111"))
@@ -28,7 +29,7 @@ type InstanceTestSuite struct {
 }
 
 func TestInstance(t *testing.T) {
-	api, _, err := setupAPIForMultiinstanceTest()
+	api, _, _, err := setupAPIForMultiinstanceTest()
 	require.NoError(t, err)
 
 	api.config.OperatorToken = operatorToken
@@ -49,7 +50,7 @@ func (ts *InstanceTestSuite) TestCreate() {
 	var buffer bytes.Buffer
 	require.NoError(ts.T(), json.NewEncoder(&buffer).Encode(map[string]interface{}{
 		"uuid":     testUUID,
-		"site_url": "https://example.netlify.com",
+		"site_url": "https://example.tigrisdata.com",
 		"config": map[string]interface{}{
 			"jwt": map[string]interface{}{
 				"secret": "testsecret",

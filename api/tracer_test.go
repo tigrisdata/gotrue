@@ -23,7 +23,7 @@ type TracerTestSuite struct {
 }
 
 func TestTracer(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, _, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &TracerTestSuite{

@@ -9,34 +9,39 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"context"
+
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 type AdminTestSuite struct {
 	suite.Suite
-	User   *models.User
-	API    *API
-	Config *conf.Configuration
-
+	User       *models.User
+	API        *API
+	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	token      string
 	instanceID uuid.UUID
 }
 
 func TestAdmin(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &AdminTestSuite{
-		API:        api,
-		Config:     config,
+		API:    api,
+		Config: config,
+		Encrypter: &crypto.AESBlockEncrypter{
+			Key: globalConf.DB.EncryptionKey,
+		},
 		instanceID: instanceID,
 	}
 
@@ -50,7 +55,7 @@ func (ts *AdminTestSuite) SetupTest() {
 }
 
 func (ts *AdminTestSuite) makeSuperAdmin(email string) string {
-	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"})
+	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	u.IsSuperAdmin = true
@@ -136,13 +141,13 @@ func (ts *AdminTestSuite) TestAdminUsers() {
 func (ts *AdminTestSuite) TestAdminUsers_Pagination() {
 	ts.T().Skip()
 
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
 	require.NoError(ts.T(), err, "Error creating user")
 
-	u, err = models.NewUser(ts.instanceID, "test2@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err = models.NewUser(ts.instanceID, "test2@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -171,7 +176,7 @@ func (ts *AdminTestSuite) TestAdminUsers_Pagination() {
 func (ts *AdminTestSuite) TestAdminUsers_SortAsc() {
 	ts.T().Skip()
 
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	// if the created_at times are the same, then the sort order is not guaranteed
@@ -205,7 +210,7 @@ func (ts *AdminTestSuite) TestAdminUsers_SortAsc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 	// if the created_at times are the same, then the sort order is not guaranteed
 	time.Sleep(1 * time.Second)
@@ -235,7 +240,7 @@ func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -262,7 +267,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -307,12 +312,12 @@ func (ts *AdminTestSuite) TestAdminUserCreate() {
 	data := models.User{}
 	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
 	assert.Equal(ts.T(), "test1@example.com", data.Email)
-	assert.Equal(ts.T(), "email", data.AppMetaData["provider"])
+	assert.Equal(ts.T(), "email", data.AppMetaData.Provider)
 }
 
 // TestAdminUserGet tests API /admin/user route (GET)
 func (ts *AdminTestSuite) TestAdminUserGet() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test Get User"})
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test Get User"}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -320,7 +325,7 @@ func (ts *AdminTestSuite) TestAdminUserGet() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/admin/users/%s", u.ID), nil)
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/admin/users/%s", u.Email), nil)
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 
@@ -340,7 +345,7 @@ func (ts *AdminTestSuite) TestAdminUserGet() {
 
 // TestAdminUserUpdate tests API /admin/user route (UPDATE)
 func (ts *AdminTestSuite) TestAdminUserUpdate() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -359,7 +364,7 @@ func (ts *AdminTestSuite) TestAdminUserUpdate() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/admin/users/%s", u.ID), &buffer)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/admin/users/%s", u.Email), &buffer)
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 
@@ -374,14 +379,14 @@ func (ts *AdminTestSuite) TestAdminUserUpdate() {
 	assert.Equal(ts.T(), "David", data.UserMetaData["name"])
 
 	assert.NotNil(ts.T(), data.AppMetaData)
-	assert.Len(ts.T(), data.AppMetaData["roles"], 2)
-	assert.Contains(ts.T(), data.AppMetaData["roles"], "writer")
-	assert.Contains(ts.T(), data.AppMetaData["roles"], "editor")
+	assert.Len(ts.T(), data.AppMetaData.Roles, 2)
+	assert.Contains(ts.T(), data.AppMetaData.Roles, "writer")
+	assert.Contains(ts.T(), data.AppMetaData.Roles, "editor")
 }
 
 // TestAdminUserUpdate tests API /admin/user route (UPDATE) as system user
 func (ts *AdminTestSuite) TestAdminUserUpdateAsSystemUser() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -400,7 +405,7 @@ func (ts *AdminTestSuite) TestAdminUserUpdateAsSystemUser() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/admin/users/%s", u.ID), &buffer)
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/admin/users/%s", u.Email), &buffer)
 
 	token := ts.makeSystemUser()
 
@@ -421,15 +426,16 @@ func (ts *AdminTestSuite) TestAdminUserUpdateAsSystemUser() {
 	require.Contains(ts.T(), u.UserMetaData, "name")
 	assert.Equal(ts.T(), u.UserMetaData["name"], "David")
 	require.NotNil(ts.T(), u.AppMetaData)
-	require.Contains(ts.T(), u.AppMetaData, "roles")
-	assert.Len(ts.T(), u.AppMetaData["roles"], 2)
-	assert.Contains(ts.T(), u.AppMetaData["roles"], "writer")
-	assert.Contains(ts.T(), u.AppMetaData["roles"], "editor")
+	require.NotNil(ts.T(), u.AppMetaData.Roles)
+	require.NotEmpty(ts.T(), u.AppMetaData.Roles)
+	assert.Len(ts.T(), u.AppMetaData.Roles, 2)
+	assert.Contains(ts.T(), u.AppMetaData.Roles, "writer")
+	assert.Contains(ts.T(), u.AppMetaData.Roles, "editor")
 }
 
 // TestAdminUserDelete tests API /admin/user route (DELETE)
 func (ts *AdminTestSuite) TestAdminUserDelete() {
-	u, err := models.NewUser(ts.instanceID, "test-delete@example.com", "test", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test-delete@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -437,7 +443,7 @@ func (ts *AdminTestSuite) TestAdminUserDelete() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/users/%s", u.ID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/users/%s", u.Email), nil)
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 

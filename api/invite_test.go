@@ -10,34 +10,37 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"context"
+
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 type InviteTestSuite struct {
 	suite.Suite
-	API    *API
-	Config *conf.Configuration
-
+	API        *API
+	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	token      string
 	instanceID uuid.UUID
 }
 
 func TestInvite(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &InviteTestSuite{
 		API:        api,
 		Config:     config,
+		Encrypter:  &crypto.AESBlockEncrypter{Key: globalConf.DB.EncryptionKey},
 		instanceID: instanceID,
 	}
 
@@ -59,7 +62,7 @@ func (ts *InviteTestSuite) makeSuperAdmin(email string) string {
 		require.NoError(ts.T(), err, "Error deleting user")
 	}
 
-	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"})
+	u, err := models.NewUser(ts.instanceID, email, "test", ts.Config.JWT.Aud, map[string]interface{}{"full_name": "Test User"}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	u.IsSuperAdmin = true
@@ -130,7 +133,7 @@ func (ts *InviteTestSuite) TestInvite_WithoutAccess() {
 }
 
 func (ts *InviteTestSuite) TestVerifyInvite() {
-	user, err := models.NewUser(ts.instanceID, "test@example.com", "", ts.Config.JWT.Aud, nil)
+	user, err := models.NewUser(ts.instanceID, "test@example.com", "", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	now := time.Now()
 	user.InvitedAt = &now
 	user.EncryptedPassword = ""
@@ -165,7 +168,7 @@ func (ts *InviteTestSuite) TestVerifyInvite() {
 }
 
 func (ts *InviteTestSuite) TestVerifyInvite_NoPassword() {
-	user, err := models.NewUser(ts.instanceID, "test@example.com", "", ts.Config.JWT.Aud, nil)
+	user, err := models.NewUser(ts.instanceID, "test@example.com", "", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	now := time.Now()
 	user.InvitedAt = &now
 	user.EncryptedPassword = ""
@@ -287,7 +290,7 @@ func (ts *InviteTestSuite) TestInviteExternalGitlab() {
 	ts.Require().NoError(err)
 	ts.Equal("Gitlab Test", user.UserMetaData["full_name"])
 	ts.Equal("http://example.com/avatar", user.UserMetaData["avatar_url"])
-	ts.Equal("gitlab", user.AppMetaData["provider"])
+	ts.Equal("gitlab", user.AppMetaData.Provider)
 }
 
 func (ts *InviteTestSuite) TestInviteExternalGitlab_MismatchedEmails() {

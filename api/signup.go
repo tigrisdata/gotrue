@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -14,6 +15,7 @@ type SignupParams struct {
 	Email    string                 `json:"email"`
 	Password string                 `json:"password"`
 	Data     map[string]interface{} `json:"data"`
+	AppData  models.UserAppMetadata `json:"app_data"`
 	Provider string                 `json:"-"`
 	Aud      string                 `json:"-"`
 }
@@ -90,6 +92,7 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	user.EncryptedPassword = a.encrypter.Decrypt(user.EncryptedPassword, user.EncryptionIV)
 	return sendJSON(w, http.StatusOK, user)
 }
 
@@ -97,35 +100,36 @@ func (a *API) signupNewUser(ctx context.Context, params *SignupParams) (*models.
 	instanceID := getInstanceID(ctx)
 	config := a.getConfig(ctx)
 
-	user, err := models.NewUser(instanceID, params.Email, params.Password, params.Aud, params.Data)
+	user, err := models.NewUserWithAppData(instanceID, params.Email, params.Password, params.Aud, params.Data, params.AppData, a.encrypter)
 	if err != nil {
 		return nil, internalServerError("Database error creating user").WithInternalError(err)
 	}
 	if user.AppMetaData == nil {
-		user.AppMetaData = make(map[string]interface{})
+		user.AppMetaData = &models.UserAppMetadata{}
 	}
-	user.AppMetaData["provider"] = params.Provider
+	user.AppMetaData.Provider = params.Provider
 
 	if params.Password == "" {
 		user.EncryptedPassword = ""
 	}
-
-	err = a.db.Tx(ctx, func(ctx context.Context) error {
-		_, terr := tigris.GetCollection[models.User](a.db).Insert(ctx, user)
-		if terr != nil {
-			return internalServerError("Database error saving new user").WithInternalError(terr)
-		}
-		if terr := user.SetRole(ctx, a.db, config.JWT.DefaultGroupName); terr != nil {
-			return internalServerError("Database error updating user").WithInternalError(terr)
-		}
-		if terr := triggerEventHooks(ctx, a.db, ValidateEvent, user, instanceID, config); terr != nil {
-			return terr
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
+	// check if user exists
+	readFilter := filter.Eq("email", user.Email)
+	existingUser, err := tigris.GetCollection[models.User](a.db).ReadOne(ctx, readFilter)
+	if err == nil && existingUser != nil {
+		return nil, badRequestError("User already exists with this email address")
 	}
 
+	// no existing user with this email address found, proceed with signup
+	_, terr := tigris.GetCollection[models.User](a.db).Insert(ctx, user)
+	if terr != nil {
+		return nil, internalServerError("Database error saving new user").WithInternalError(terr)
+	}
+
+	if terr := user.SetRole(ctx, a.db, config.JWT.DefaultGroupName); terr != nil {
+		return nil, internalServerError("Database error updating user").WithInternalError(terr)
+	}
+	if terr := triggerEventHooks(ctx, a.db, ValidateEvent, user, instanceID, config); terr != nil {
+		return nil, terr
+	}
 	return user, nil
 }

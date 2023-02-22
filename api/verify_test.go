@@ -8,31 +8,34 @@ import (
 	"testing"
 	"time"
 
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"context"
+
 	"github.com/google/uuid"
+	"github.com/netlify/gotrue/conf"
+	"github.com/netlify/gotrue/crypto"
+	"github.com/netlify/gotrue/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
-	"context"
 )
 
 type VerifyTestSuite struct {
 	suite.Suite
-	API    *API
-	Config *conf.Configuration
-
+	API        *API
+	Config     *conf.Configuration
+	Encrypter  *crypto.AESBlockEncrypter
 	instanceID uuid.UUID
 }
 
 func TestVerify(t *testing.T) {
-	api, config, instanceID, err := setupAPIForTestForInstance()
+	api, config, globalConf, instanceID, err := setupAPIForTestForInstance()
 	require.NoError(t, err)
 
 	ts := &VerifyTestSuite{
 		API:        api,
 		Config:     config,
+		Encrypter:  &crypto.AESBlockEncrypter{Key: globalConf.DB.EncryptionKey},
 		instanceID: instanceID,
 	}
 
@@ -43,7 +46,7 @@ func (ts *VerifyTestSuite) SetupTest() {
 	models.TruncateAll(ts.API.db)
 
 	// Create user
-	u, err := models.NewUser(ts.instanceID, "test@example.com", "password", ts.Config.JWT.Aud, nil)
+	u, err := models.NewUser(ts.instanceID, "test@example.com", "password", ts.Config.JWT.Aud, nil, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error creating test user model")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)

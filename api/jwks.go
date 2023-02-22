@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/pem"
 	"math/big"
 	"net/http"
@@ -65,7 +64,7 @@ func NewJKWS(globalConfig *conf.GlobalConfiguration, config *conf.Configuration,
 			return nil, err
 		}
 		thumbprint := sha1.Sum(publicKeyDER)
-		hexThumbprint := hex.EncodeToString(thumbprint[:])
+		thumbprintBase64URL := base64.RawURLEncoding.EncodeToString(thumbprint[:])
 
 		// kid
 		kid, err := getKeyID(rsaPublicKey)
@@ -79,7 +78,8 @@ func NewJKWS(globalConfig *conf.GlobalConfiguration, config *conf.Configuration,
 			"kid": kid,
 			"n":   base64UrlEncode(rsaPublicKey.N.Bytes()),
 			"e":   base64UrlEncode(big.NewInt(int64(rsaPublicKey.E)).Bytes()),
-			"x5t": hexThumbprint}
+			"x5t": thumbprintBase64URL,
+		}
 
 		keysMap = append(keysMap, thisKeyInfo)
 	}
@@ -104,6 +104,6 @@ func getKeyID(pubKey *rsa.PublicKey) (string, error) {
 	if _, err := h.Write(pubKey.N.Bytes()); err != nil {
 		return "", err
 	}
-	kid := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	kid := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 	return kid, nil
 }

@@ -5,33 +5,32 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/go-chi/chi"
 	"github.com/netlify/gotrue/models"
-	"github.com/tigrisdata/tigris-client-go/tigris"
 	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 type adminUserParams struct {
-	Aud          string                 `json:"aud"`
-	Role         string                 `json:"role"`
-	Email        string                 `json:"email"`
-	Password     string                 `json:"password"`
-	Confirm      bool                   `json:"confirm"`
-	UserMetaData map[string]interface{} `json:"user_metadata"`
-	AppMetaData  map[string]interface{} `json:"app_metadata"`
+	Aud          string                  `json:"aud"`
+	Role         string                  `json:"role"`
+	Email        string                  `json:"email"`
+	Password     string                  `json:"password"`
+	Confirm      bool                    `json:"confirm"`
+	UserMetaData map[string]interface{}  `json:"user_metadata"`
+	AppMetaData  *models.UserAppMetadata `json:"app_metadata"`
 }
 
 func (a *API) loadUser(w http.ResponseWriter, r *http.Request) (context.Context, error) {
-	userID, err := uuid.Parse(chi.URLParam(r, "user_id"))
-	if err != nil {
-		return nil, badRequestError("user_id must be an UUID")
+	email := chi.URLParam(r, "email")
+	if email == "" {
+		return nil, badRequestError("email must be non empty")
 	}
 
-	logEntrySetField(r, "user_id", userID)
+	logEntrySetField(r, "email", email)
 	instanceID := getInstanceID(r.Context())
 
-	u, err := models.FindUserByInstanceIDAndID(r.Context(), a.db, instanceID, userID)
+	u, err := models.FindUserByInstanceIDAndEmail(r.Context(), a.db, instanceID, email)
 	if err != nil {
 		if models.IsNotFoundError(err) {
 			return nil, notFoundError("User not found")
@@ -68,8 +67,10 @@ func (a *API) adminUsers(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	filter := r.URL.Query().Get("filter")
+	namespaceFilter := r.URL.Query().Get("tigris_namespace")
+	createdByFilter := r.URL.Query().Get("created_by")
 
-	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter)
+	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter, namespaceFilter, createdByFilter, a.encrypter)
 	if err != nil {
 		return internalServerError("Database error finding users").WithInternalError(err)
 	}
@@ -113,7 +114,7 @@ func (a *API) adminUserUpdate(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		if params.Password != "" {
-			if terr := user.UpdatePassword(ctx, a.db, params.Password); terr != nil {
+			if terr := user.UpdatePassword(ctx, a.db, a.encrypter, params.Password); terr != nil {
 				return terr
 			}
 		}
@@ -124,8 +125,9 @@ func (a *API) adminUserUpdate(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 
+		// patch
 		if params.AppMetaData != nil {
-			if terr := user.UpdateAppMetaData(ctx, a.db, params.AppMetaData); terr != nil {
+			if terr := user.PatchAppMetaData(ctx, a.db, params.AppMetaData); terr != nil {
 				return terr
 			}
 		}
@@ -177,14 +179,14 @@ func (a *API) adminUserCreate(w http.ResponseWriter, r *http.Request) error {
 		return unprocessableEntityError("Email address already registered by another user")
 	}
 
-	user, err := models.NewUser(instanceID, params.Email, params.Password, aud, params.UserMetaData)
+	user, err := models.NewUser(instanceID, params.Email, params.Password, aud, params.UserMetaData, a.encrypter)
 	if err != nil {
 		return internalServerError("Error creating user").WithInternalError(err)
 	}
 	if user.AppMetaData == nil {
-		user.AppMetaData = make(map[string]interface{})
+		user.AppMetaData = &models.UserAppMetadata{}
 	}
-	user.AppMetaData["provider"] = "email"
+	user.AppMetaData.Provider = "email"
 
 	config := a.getConfig(ctx)
 	err = a.db.Tx(ctx, func(ctx context.Context) error {

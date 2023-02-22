@@ -20,7 +20,12 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 	var drv driver.Driver
 	var err error
 	for i := 0; i < 3; i++ {
-		drv, err = driver.NewDriver(ctx, &tconf.Driver{URL: config.DB.URL})
+		drv, err = driver.NewDriver(ctx, &tconf.Driver{
+			ClientID:     config.DB.ClientId,
+			ClientSecret: config.DB.ClientSecret,
+			Branch:       config.DB.Branch,
+			URL:          config.DB.URL,
+		})
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
@@ -32,14 +37,17 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 	}
 	logrus.Infof("creating tigris driver successful for url: %s project: %s", config.DB.URL, config.DB.Project)
 
-	_, _ = drv.DeleteProject(ctx, config.DB.Project)
 	_, err = drv.CreateProject(ctx, config.DB.Project)
-	if err != nil {
+	if err != nil && err.Error() != "project already exist" {
+		logrus.Errorf("Failed to create tigris project: %+v", err)
 		return nil, err
 	}
 
 	return tigris.NewClient(ctx, &tigris.Config{
-		URL:     config.DB.URL,
-		Project: config.DB.Project,
+		URL:          config.DB.URL,
+		Project:      config.DB.Project,
+		Branch:       config.DB.Branch,
+		ClientID:     config.DB.ClientId,
+		ClientSecret: config.DB.ClientSecret,
 	})
 }

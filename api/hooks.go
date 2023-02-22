@@ -13,8 +13,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -52,8 +52,8 @@ type Webhook struct {
 }
 
 type WebhookResponse struct {
-	AppMetaData  map[string]interface{} `json:"app_metadata,omitempty"`
-	UserMetaData map[string]interface{} `json:"user_metadata,omitempty"`
+	AppMetaData  *models.UserAppMetadata `json:"app_metadata,omitempty"`
+	UserMetaData map[string]interface{}  `json:"user_metadata,omitempty"`
 }
 
 func (w *Webhook) trigger() (io.ReadCloser, error) {
