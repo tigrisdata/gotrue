@@ -27,12 +27,21 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 			URL:          config.DB.URL,
 		})
 		if err != nil {
-			time.Sleep(1 * time.Second)
+			logrus.WithError(err).Warn("Failed to create Tigris driver. Retrying")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		_, err := drv.Health(ctx)
+		if err != nil {
+			logrus.WithError(err).Warn("Failed to health check tigris. Retrying")
+			time.Sleep(5 * time.Second)
 			continue
 		}
 	}
+
 	if err != nil {
-		logrus.Errorf("failed in creating driver url: %s err: %v", config.DB.URL, err)
+		logrus.WithError(err).Error("Failed to construct Tigris driver")
 		return nil, err
 	}
 	logrus.Infof("creating tigris driver successful for url: %s project: %s", config.DB.URL, config.DB.Project)
