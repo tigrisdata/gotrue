@@ -113,7 +113,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 	u := ts.createUser()
 
 	ctx := context.TODO()
-	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "", "", "", ts.encrypter)
+	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "", "test", "", "test", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 
@@ -121,7 +121,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 		Page:    1,
 		PerPage: 50,
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", ts.encrypter)
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 	//ToDo: pagination related
@@ -132,7 +132,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 			SortField{Name: "created_at", Dir: Descending},
 		},
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", ts.encrypter)
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 }
@@ -206,7 +206,13 @@ func (ts *UserTestSuite) createUser() *User {
 }
 
 func (ts *UserTestSuite) createUserWithEmail(email string) *User {
-	user, err := NewUser(uuid.Nil, email, "secret", "test", nil, ts.encrypter)
+	user, err := NewUserWithAppData(uuid.Nil, email, "secret", "test", nil, UserAppMetadata{
+		Name:            "test",
+		Description:     "test",
+		Provider:        "email",
+		TigrisProject:   "test",
+		TigrisNamespace: "test",
+	}, ts.encrypter)
 	require.NoError(ts.T(), err)
 
 	_, err = tigris.GetCollection[User](ts.db).Insert(context.TODO(), user)

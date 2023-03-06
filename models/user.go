@@ -401,7 +401,7 @@ func FindUserWithRefreshToken(ctx context.Context, database *tigris.Database, to
 }
 
 // FindUsersInAudience finds users with the matching audience.
-func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string, tigrisNamespace string, createdBy string, encrypter *crypto.AESBlockEncrypter) ([]*User, error) {
+func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string, tigrisNamespace string, createdBy string, tigrisProject string, encrypter *crypto.AESBlockEncrypter) ([]*User, error) {
 	//ToDo: sorting
 	/**
 	if sortParams != nil && len(sortParams.Fields) > 0 {
@@ -421,6 +421,8 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	}*/
 
 	listUsersFilter := filter.Eq("aud", aud)
+	listUsersFilter = filter.And(listUsersFilter, filter.Eq("instance_id", instanceID.String()))
+
 	if tigrisNamespace != "" {
 		listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_namespace", tigrisNamespace))
 	}
@@ -437,6 +439,13 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	var user User
 	for it.Next(&user) {
 		u := user
+		if tigrisProject != "" && u.AppMetaData != nil {
+			if !(u.AppMetaData.TigrisProject == "" || u.AppMetaData.TigrisProject == tigrisProject) {
+				continue
+			}
+		}
+		// either the project field doesn't exist - this is required for backward compatibility
+		// or it has to match the requested project name
 		u.EncryptedPassword = encrypter.Decrypt(u.EncryptedPassword, u.EncryptionIV)
 		if qfilter != "" {
 			if len(u.Email) > 0 && strings.Contains(strings.ToLower(u.Email), qfilter) {
@@ -451,7 +460,6 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 			users = append(users, &u)
 		}
 	}
-
 	return users, err
 }
 

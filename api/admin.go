@@ -69,8 +69,9 @@ func (a *API) adminUsers(w http.ResponseWriter, r *http.Request) error {
 	filter := r.URL.Query().Get("filter")
 	namespaceFilter := r.URL.Query().Get("tigris_namespace")
 	createdByFilter := r.URL.Query().Get("created_by")
+	projectFilter := r.URL.Query().Get("tigris_project")
 
-	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter, namespaceFilter, createdByFilter, a.encrypter)
+	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter, namespaceFilter, createdByFilter, projectFilter, a.encrypter)
 	if err != nil {
 		return internalServerError("Database error finding users").WithInternalError(err)
 	}
