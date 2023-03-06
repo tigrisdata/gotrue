@@ -210,7 +210,13 @@ func (ts *AdminTestSuite) TestAdminUsers_SortAsc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test",
+		TigrisProject:   "test",
+		Name:            "test",
+		Description:     "test",
+		Provider:        "email",
+	}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 	// if the created_at times are the same, then the sort order is not guaranteed
 	time.Sleep(1 * time.Second)
@@ -240,7 +246,12 @@ func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test",
+		TigrisProject:   "test",
+		Name:            "test",
+		Provider:        "email",
+	}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -248,7 +259,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/admin/users?filter=test1", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin/users?tigris_namespace=test&tigris_project=test", nil)
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 
@@ -267,7 +278,12 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
-	u, err := models.NewUser(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, ts.Encrypter)
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test",
+		TigrisProject:   "test",
+		Name:            "test",
+		Provider:        "email",
+	}, ts.Encrypter)
 	require.NoError(ts.T(), err, "Error making new user")
 
 	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
@@ -290,6 +306,60 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
 
 	require.Len(ts.T(), data.Users, 1)
 	assert.Equal(ts.T(), "test@example.com", data.Users[0].Email)
+}
+
+// TestAdminUsers tests API /admin/users route - creates 3 users for a test_namespace with different projects and queries them by tigris_project
+func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
+	// first user
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test_namespace",
+		TigrisProject:   "test2",
+		Name:            "test",
+		Provider:        "email",
+	}, ts.Encrypter)
+	require.NoError(ts.T(), err, "Error making new user")
+
+	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u)
+	require.NoError(ts.T(), err, "Error creating user")
+
+	// second user
+	u2, err := models.NewUserWithAppData(ts.instanceID, "test2@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test_namespace",
+		TigrisProject:   "test3",
+		Name:            "test",
+		Provider:        "email",
+	}, ts.Encrypter)
+	require.NoError(ts.T(), err, "Error making new user")
+	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u2)
+	require.NoError(ts.T(), err, "Error creating user")
+
+	// third user without project field
+	u3, err := models.NewUserWithAppData(ts.instanceID, "test3@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+		TigrisNamespace: "test_namespace",
+		Name:            "test",
+		Provider:        "email",
+	}, ts.Encrypter)
+	require.NoError(ts.T(), err, "Error making new user")
+
+	_, err = tigris.GetCollection[models.User](ts.API.db).Insert(context.TODO(), u3)
+	require.NoError(ts.T(), err, "Error creating user")
+
+	// Setup request
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin/users?tigris_project=test2&tigris_namespace=test_namespace", nil)
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
+
+	ts.API.handler.ServeHTTP(w, req)
+	require.Equal(ts.T(), http.StatusOK, w.Code)
+
+	data := struct {
+		Users []*models.User `json:"users"`
+		Aud   string         `json:"aud"`
+	}{}
+	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
+
+	require.Len(ts.T(), data.Users, 2)
 }
 
 // TestAdminUserCreate tests API /admin/user route (POST)
