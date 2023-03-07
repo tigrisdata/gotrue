@@ -308,7 +308,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
 	assert.Equal(ts.T(), "test@example.com", data.Users[0].Email)
 }
 
-// TestAdminUsers tests API /admin/users route - creates 3 users for a test_namespace with different projects and queries them by tigris_project
+// TestAdminUsers_FilterTigrisProject tests API /admin/users route - creates 3 users for a test_namespace with different projects and queries them by tigris_project
 func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	// first user
 	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
@@ -360,6 +360,26 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
 
 	require.Len(ts.T(), data.Users, 2)
+}
+
+// TestAdminUsers_EmptyResponse tests API /admin/users route - validates the empty response is an empty array for users
+func (ts *AdminTestSuite) TestAdminUsers_EmptyResponse() {
+	// Setup request
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/admin/users?tigris_project=test2&tigris_namespace=invalid_namespace", nil)
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
+
+	ts.API.handler.ServeHTTP(w, req)
+	require.Equal(ts.T(), http.StatusOK, w.Code)
+
+	data := struct {
+		Users []*models.User `json:"users"`
+		Aud   string         `json:"aud"`
+	}{}
+	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
+	var emptyArray = make([]*models.User, 0)
+	require.Equal(ts.T(), emptyArray, data.Users)
 }
 
 // TestAdminUserCreate tests API /admin/user route (POST)
