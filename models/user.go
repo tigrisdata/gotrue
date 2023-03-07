@@ -460,6 +460,10 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 			users = append(users, &u)
 		}
 	}
+	// return empty array instead of null JSON value
+	if users == nil {
+		users = make([]*User, 0)
+	}
 	return users, err
 }
 
