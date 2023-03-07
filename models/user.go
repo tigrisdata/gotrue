@@ -61,8 +61,8 @@ type User struct {
 
 	IsSuperAdmin bool `json:"is_super_admin" db:"is_super_admin"`
 
-	CreatedAt time.Time `json:"created_at" db:"created_at" tigris:"default:now(),createdAt"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at" tigris:"default:now(),updatedAt"`
+	CreatedAt *time.Time `json:"created_at,omitempty" db:"created_at" tigris:"default:now(),createdAt"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty" db:"updated_at" tigris:"default:now(),updatedAt"`
 }
 
 // NewUser initializes a new user from an email, password and user data.
