@@ -39,6 +39,7 @@ type DBConfiguration struct {
 	Namespace     string `json:"namespace"`
 	Project       string `json:"project" required:"true"`
 	Branch        string `json:"db_branch" envconfig:"GOTRUE_DB_BRANCH" required:"true"`
+	Token         string `json:"token" envconfig:"GOTRUE_DB_TOKEN"`
 	ClientId      string `json:"client_id" envconfig:"GOTRUE_DB_CLIENT_ID"`
 	ClientSecret  string `json:"client_secret" envconfig:"GOTRUE_DB_CLIENT_SECRET"`
 	EncryptionKey string `json:"encryption_key" envconfig:"GOTRUE_DB_ENCRYPTION_KEY"`
