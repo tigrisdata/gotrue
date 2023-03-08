@@ -19,13 +19,18 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 
 	var drv driver.Driver
 	var err error
+	dbConfig := &tconf.Driver{
+		Branch: config.DB.Branch,
+		URL:    config.DB.URL,
+	}
+	if config.DB.Token != "" {
+		dbConfig.Token = config.DB.Token
+	} else {
+		dbConfig.ClientID = config.DB.ClientId
+		dbConfig.ClientSecret = config.DB.ClientSecret
+	}
 	for i := 0; i < 3; i++ {
-		drv, err = driver.NewDriver(ctx, &tconf.Driver{
-			ClientID:     config.DB.ClientId,
-			ClientSecret: config.DB.ClientSecret,
-			Branch:       config.DB.Branch,
-			URL:          config.DB.URL,
-		})
+		drv, err = driver.NewDriver(ctx, dbConfig)
 		if err != nil {
 			logrus.WithError(err).Warn("Failed to create Tigris driver. Retrying")
 			time.Sleep(5 * time.Second)
@@ -52,11 +57,16 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 		return nil, err
 	}
 
-	return tigris.NewClient(ctx, &tigris.Config{
-		URL:          config.DB.URL,
-		Project:      config.DB.Project,
-		Branch:       config.DB.Branch,
-		ClientID:     config.DB.ClientId,
-		ClientSecret: config.DB.ClientSecret,
-	})
+	tigrisConfig := &tigris.Config{
+		URL:     config.DB.URL,
+		Project: config.DB.Project,
+		Branch:  config.DB.Branch,
+	}
+	if config.DB.Token != "" {
+		tigrisConfig.Token = config.DB.Token
+	} else {
+		tigrisConfig.ClientID = config.DB.ClientId
+		tigrisConfig.ClientSecret = config.DB.ClientSecret
+	}
+	return tigris.NewClient(ctx, tigrisConfig)
 }

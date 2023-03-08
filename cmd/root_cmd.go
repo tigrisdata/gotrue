@@ -64,17 +64,21 @@ func execWithConfigAndArgs(cmd *cobra.Command, fn func(globalConfig *conf.Global
 func bootstrapSchemas(ctx context.Context, globalConfig *conf.GlobalConfiguration) *tigris.Database {
 	tigrisClient, err := storage.Client(ctx, globalConfig)
 	if err != nil {
-		logrus.Fatalf("Failed to create tigris client: %+v", err)
+		logrus.WithError(err).Fatalf("Failed to create tigris client: %+v", err)
 	}
-
-	drv, err := driver.NewDriver(context.TODO(), &tconf.Driver{
-		ClientID:     globalConfig.DB.ClientId,
-		ClientSecret: globalConfig.DB.ClientSecret,
-		Branch:       globalConfig.DB.Branch,
-		URL:          globalConfig.DB.URL,
-	})
+	drvCfg := &tconf.Driver{
+		Branch: globalConfig.DB.Branch,
+		URL:    globalConfig.DB.URL,
+	}
+	if globalConfig.DB.Token != "" {
+		drvCfg.Token = globalConfig.DB.Token
+	} else {
+		drvCfg.ClientID = globalConfig.DB.ClientId
+		drvCfg.ClientSecret = globalConfig.DB.ClientSecret
+	}
+	drv, err := driver.NewDriver(context.TODO(), drvCfg)
 	if err != nil {
-		logrus.Errorf("Failed to create tigris client: %+v", err)
+		logrus.WithError(err).Errorf("Failed to create tigris client: %+v", err)
 	}
 	_, err = drv.CreateProject(context.TODO(), globalConfig.DB.Project)
 	if err != nil {

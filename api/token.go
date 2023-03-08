@@ -17,8 +17,6 @@ import (
 type GoTrueClaims struct {
 	jwt.StandardClaims
 	TigrisMetadata map[string]interface{} `json:"https://tigris"`
-	AppMetaData    map[string]interface{} `json:"app_metadata"`
-	UserMetaData   map[string]interface{} `json:"user_metadata"`
 }
 
 // AccessTokenResponse represents an OAuth2 success response
