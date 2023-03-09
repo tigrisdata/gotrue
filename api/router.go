@@ -39,6 +39,14 @@ func (r *router) With(fn middlewareHandler) *router {
 	return &router{c}
 }
 
+func (r *router) HandleFunc(pattern string, handleFunc http.HandlerFunc) {
+	r.chi.HandleFunc(pattern, handleFunc)
+}
+
+func (r *router) Handle(pattern string, handler http.Handler) {
+	r.chi.Handle(pattern, handler)
+}
+
 func (r *router) WithBypass(fn func(next http.Handler) http.Handler) *router {
 	c := r.chi.With(fn)
 	return &router{c}
