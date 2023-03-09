@@ -7,6 +7,8 @@ import (
 	"encoding/pem"
 	"log"
 	"net/http"
+	"net/http/pprof"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"regexp"
@@ -171,7 +173,15 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 	r.Use(addRequestID(globalConfig))
 	r.Use(recoverer)
 	r.UseBypass(tracer)
-
+	if globalConfig.API.EnableDebugEndpoint {
+		r.HandleFunc("/debug", pprof.Index)
+		r.HandleFunc("/debug/pprof/", pprof.Index)
+		r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+		r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	}
 	r.Get("/health", api.HealthCheck)
 
 	r.Route("/callback", func(r *router) {
