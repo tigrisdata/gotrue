@@ -434,6 +434,7 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 		return nil, errors.Wrap(err, "reading user failed")
 	}
 
+	defer it.Close()
 	qfilter = strings.ToLower(qfilter)
 	var users []*User
 	var user User
