@@ -56,11 +56,14 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 		logrus.Errorf("Failed to create tigris project: %+v", err)
 		return nil, err
 	}
+	// close the driver after creating project
+	defer drv.Close()
 
 	tigrisConfig := &tigris.Config{
-		URL:     config.DB.URL,
-		Project: config.DB.Project,
-		Branch:  config.DB.Branch,
+		URL:      config.DB.URL,
+		Project:  config.DB.Project,
+		Branch:   config.DB.Branch,
+		Protocol: driver.HTTP,
 	}
 	if config.DB.Token != "" {
 		tigrisConfig.Token = config.DB.Token
