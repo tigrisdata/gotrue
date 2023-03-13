@@ -23,7 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.6
 	github.com/stretchr/testify v1.8.1
-	github.com/tigrisdata/tigris-client-go v1.0.0-beta.24
+	github.com/tigrisdata/tigris-client-go v1.0.0-beta.25
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/oauth2 v0.6.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.12.1
