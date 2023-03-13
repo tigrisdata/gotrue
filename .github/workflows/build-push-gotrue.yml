@@ -47,8 +47,11 @@ jobs:
           images: |
             ${{ env.QUAY_REPO }}
           tags: |
-            github-${{ steps.var.outputs.sha_short }}
-            latest
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
 
       - name: Build and push Docker images
         id: build-push-to-quay
