@@ -60,9 +60,10 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 	defer drv.Close()
 
 	tigrisConfig := &tigris.Config{
-		URL:     config.DB.URL,
-		Project: config.DB.Project,
-		Branch:  config.DB.Branch,
+		URL:      config.DB.URL,
+		Project:  config.DB.Project,
+		Branch:   config.DB.Branch,
+		Protocol: driver.HTTP,
 	}
 	if config.DB.Token != "" {
 		tigrisConfig.Token = config.DB.Token
