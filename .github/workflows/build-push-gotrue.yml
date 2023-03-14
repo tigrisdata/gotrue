@@ -8,6 +8,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
 
 env:
   QUAY_REPO: "quay.io/tigrisdata/gotrue"
