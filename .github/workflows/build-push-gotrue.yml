@@ -25,6 +25,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch tags
+        run: |
+          git fetch --prune --tags
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
