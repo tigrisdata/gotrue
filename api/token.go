@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
@@ -11,6 +14,7 @@ import (
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/metering"
 	"github.com/netlify/gotrue/models"
+	"github.com/sirupsen/logrus"
 )
 
 // GoTrueClaims is a struct that used for JWT claims
@@ -71,6 +75,27 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 		return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 	}
 
+	if a.tokenCache.Contains(user.Email) {
+		cachedValue, contains := a.tokenCache.Get(user.Email)
+		if contains {
+			cachedAccessToken, ok := cachedValue.(*AccessTokenResponse)
+			if ok {
+				// parse token and check expiry
+				cachedTokenPayload := strings.Split(cachedAccessToken.Token, ".")[1]
+				exp := getExpiry(cachedTokenPayload)
+				// if expiry is within an hour then evict the token and issue new one.
+				if time.Now().Unix()+3600 >= exp {
+					a.tokenCache.Remove(user.Email)
+				} else {
+					// update expiresIn seconds
+					cachedAccessToken.ExpiresIn = int(exp - time.Now().Unix())
+					metering.RecordLogin("password", user.ID, instanceID)
+					return sendJSON(w, http.StatusOK, cachedAccessToken)
+				}
+			}
+		}
+	}
+
 	var token *AccessTokenResponse
 	err = a.db.Tx(ctx, func(ctx context.Context) error {
 		var terr error
@@ -96,6 +121,8 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 	if err != nil {
 		return err
 	}
+	// process cache
+	_ = a.tokenCache.Add(user.Email, token)
 	metering.RecordLogin("password", user.ID, instanceID)
 	return sendJSON(w, http.StatusOK, token)
 }
@@ -258,4 +285,15 @@ func (a *API) clearCookieToken(ctx context.Context, w http.ResponseWriter) {
 		HttpOnly: true,
 		Path:     "/",
 	})
+}
+
+func getExpiry(tokenPayload string) int64 {
+	jsonString, _ := base64.RawStdEncoding.DecodeString(tokenPayload)
+	var payload map[string]interface{}
+	err := json.Unmarshal(jsonString, &payload)
+	if err != nil {
+		logrus.WithError(err).Warn("Failed to parse expiry from cached token - disabling cache")
+		return 0
+	}
+	return int64(payload["exp"].(float64))
 }
