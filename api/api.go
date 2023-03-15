@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/imdario/mergo"
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/netlify/gotrue/conf"
@@ -47,6 +48,7 @@ type API struct {
 	config      *conf.GlobalConfiguration
 	tokenSigner *TokenSigner
 	version     string
+	tokenCache  *lru.Cache
 }
 
 // TokenSigner is responsible to sign token, it supports HS256, RS256 algo
@@ -157,7 +159,12 @@ func NewAPI(globalConfig *conf.GlobalConfiguration, config *conf.Configuration, 
 
 // NewAPIWithVersion creates a new REST API using the specified version
 func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfiguration, config *conf.Configuration, db *tigris.Database, version string) *API {
-	api := &API{config: globalConfig, db: db, version: version, tokenSigner: NewTokenSigner(config), encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey}}
+	cache, err := lru.New(globalConfig.API.TokenCacheSize)
+	if err != nil {
+		log.Fatalf("Couldn't construct token cache %v", err)
+		return nil
+	}
+	api := &API{config: globalConfig, db: db, version: version, tokenSigner: NewTokenSigner(config), encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey}, tokenCache: cache}
 	jwks, err := NewJKWS(globalConfig, config, version)
 	if err != nil {
 		log.Fatalf("Couldn't construct JWKS %v", err)
