@@ -62,6 +62,7 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 	user, err := models.FindUserByEmailAndAudience(r.Context(), a.db, instanceID, username, aud)
 	if err != nil {
 		if models.IsNotFoundError(err) {
+			logrus.WithField("email", username).Warn("No user found with that email, or password invalid.")
 			return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 		}
 		return internalServerError("Database error finding user").WithInternalError(err)
@@ -72,10 +73,11 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 	}
 
 	if !user.Authenticate(password, a.encrypter) {
+		logrus.WithField("email", username).Warn("No user found with that email, or password invalid: Auth failure")
 		return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 	}
 
-	if a.tokenCache.Contains(user.Email) {
+	if a.config.API.EnableTokenCache && a.tokenCache.Contains(user.Email) {
 		cachedValue, contains := a.tokenCache.Get(user.Email)
 		if contains {
 			cachedAccessToken, ok := cachedValue.(*AccessTokenResponse)
