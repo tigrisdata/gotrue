@@ -70,6 +70,7 @@ type GlobalConfiguration struct {
 		RequestIDHeader     string `envconfig:"REQUEST_ID_HEADER"`
 		EnableDebugEndpoint bool   `envconfig:"ENABLE_DEBUG_ENDPOINT"`
 		TokenCacheSize      int    `envconfig:"TOKEN_CACHE_SIZE" default:"100"`
+		EnableTokenCache    bool   `envconfig:"ENABLE_TOKEN_CACHE" default:"false"`
 	}
 	DB                DBConfiguration
 	External          ProviderConfiguration
