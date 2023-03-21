@@ -13,7 +13,7 @@ import (
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/models"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -160,7 +160,7 @@ func unshiftPrivateIPBlock(address *net.IPNet) {
 
 type noLocalTransport struct {
 	inner  http.RoundTripper
-	errlog logrus.FieldLogger
+	errlog zerolog.Logger
 }
 
 func (no noLocalTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -195,20 +195,20 @@ func (no noLocalTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	return no.inner.RoundTrip(req)
 }
 
-func SafeRoundtripper(trans http.RoundTripper, log logrus.FieldLogger) http.RoundTripper {
+func SafeRoundtripper(trans http.RoundTripper, log zerolog.Logger) http.RoundTripper {
 	if trans == nil {
 		trans = http.DefaultTransport
 	}
 
 	ret := &noLocalTransport{
 		inner:  trans,
-		errlog: log.WithField("transport", "local_blocker"),
+		errlog: log.With().Str("transport", "local_blocker").Logger(),
 	}
 
 	return ret
 }
 
-func SafeHTTPClient(client *http.Client, log logrus.FieldLogger) *http.Client {
+func SafeHTTPClient(client *http.Client, log zerolog.Logger) *http.Client {
 	client.Transport = SafeRoundtripper(client.Transport, log)
 
 	return client

@@ -10,7 +10,7 @@ import (
 	"github.com/netlify/gotrue/crypto"
 	"github.com/netlify/gotrue/storage/namespace"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/tigrisdata/tigris-client-go/fields"
 	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/tigris"
@@ -275,7 +275,8 @@ func (u *User) UpdatePassword(ctx context.Context, database *tigris.Database, en
 func (u *User) Authenticate(password string, encrypter *crypto.AESBlockEncrypter) bool {
 	ivBytes, err := base64.StdEncoding.DecodeString(u.EncryptionIV)
 	if err != nil {
-		logrus.WithField("email", u.Email).Error("Failed to retrieve existing IV for user")
+		subLogger := log.With().Str("email", u.Email).Logger()
+		subLogger.Error().Msg("Failed to retrieve existing IV for user")
 		return false
 	}
 	encryptedPassword, _ := encrypter.EncryptWithIV(password, ivBytes)

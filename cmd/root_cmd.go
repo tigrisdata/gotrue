@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	tconf "github.com/tigrisdata/tigris-client-go/config"
 	"github.com/tigrisdata/tigris-client-go/driver"
@@ -34,11 +34,11 @@ func RootCommand() *cobra.Command {
 func execWithConfig(cmd *cobra.Command, fn func(globalConfig *conf.GlobalConfiguration, config *conf.Configuration, database *tigris.Database)) {
 	globalConfig, err := conf.LoadGlobal(configFile)
 	if err != nil {
-		logrus.Fatalf("Failed to load configuration: %+v", err)
+		log.Fatal().Msgf("Failed to load configuration: %+v", err)
 	}
 	config, err := conf.LoadConfig(configFile)
 	if err != nil {
-		logrus.Fatalf("Failed to load configuration: %+v", err)
+		log.Fatal().Msgf("Failed to load configuration: %+v", err)
 	}
 
 	db := bootstrapSchemas(context.TODO(), globalConfig)
@@ -49,11 +49,11 @@ func execWithConfig(cmd *cobra.Command, fn func(globalConfig *conf.GlobalConfigu
 func execWithConfigAndArgs(cmd *cobra.Command, fn func(globalConfig *conf.GlobalConfiguration, config *conf.Configuration, database *tigris.Database, args []string), args []string) {
 	globalConfig, err := conf.LoadGlobal(configFile)
 	if err != nil {
-		logrus.Fatalf("Failed to load configuration: %+v", err)
+		log.Fatal().Msgf("Failed to load configuration: %+v", err)
 	}
 	config, err := conf.LoadConfig(configFile)
 	if err != nil {
-		logrus.Fatalf("Failed to load configuration: %+v", err)
+		log.Fatal().Msgf("Failed to load configuration: %+v", err)
 	}
 
 	db := bootstrapSchemas(context.TODO(), globalConfig)
@@ -64,7 +64,7 @@ func execWithConfigAndArgs(cmd *cobra.Command, fn func(globalConfig *conf.Global
 func bootstrapSchemas(ctx context.Context, globalConfig *conf.GlobalConfiguration) *tigris.Database {
 	tigrisClient, err := storage.Client(ctx, globalConfig)
 	if err != nil {
-		logrus.WithError(err).Fatalf("Failed to create tigris client: %+v", err)
+		log.Fatal().Err(err).Msgf("Failed to create tigris client: %+v", err)
 	}
 	drvCfg := &tconf.Driver{
 		Branch: globalConfig.DB.Branch,
@@ -78,15 +78,15 @@ func bootstrapSchemas(ctx context.Context, globalConfig *conf.GlobalConfiguratio
 	}
 	drv, err := driver.NewDriver(context.TODO(), drvCfg)
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to create tigris client: %+v", err)
+		log.Error().Err(err).Msgf("Failed to create tigris client: %+v", err)
 	}
 	_, err = drv.CreateProject(context.TODO(), globalConfig.DB.Project)
 	if err != nil {
-		logrus.Errorf("Failed to create tigris project: %+v", err)
+		log.Error().Err(err).Msgf("Failed to create tigris project: %+v", err)
 	}
 	db, err := tigrisClient.OpenDatabase(ctx, &models.AuditLogEntry{}, &models.User{}, &models.RefreshToken{}, &models.Instance{})
 	if err != nil {
-		logrus.Fatalf("Error opening database: %+v", err)
+		log.Fatal().Err(err).Msgf("Error opening database: %+v", err)
 	}
 
 	return db

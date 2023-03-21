@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/netlify/gotrue/api/provider"
-	"github.com/sirupsen/logrus"
 )
 
 // loadOAuthState parses the `state` query parameter as a JWS payload,
@@ -38,11 +37,8 @@ func (a *API) oAuthCallback(ctx context.Context, r *http.Request, providerType s
 		return nil, badRequestError("Unsupported provider: %+v", err).WithInternalError(err)
 	}
 
-	log := getLogEntry(r)
-	log.WithFields(logrus.Fields{
-		"provider": providerType,
-		"code":     oauthCode,
-	}).Debug("Exchanging oauth code")
+	log := getLogEntry(r).With().Str("provider", providerType).Str("code", oauthCode).Logger()
+	log.Debug().Msg("Exchanging oauth code")
 
 	tok, err := oAuthProvider.GetOAuthToken(oauthCode)
 	if err != nil {

@@ -2,59 +2,54 @@ package conf
 
 import (
 	"os"
+	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 type LoggingConfig struct {
-	Level            string                 `mapstructure:"log_level" json:"log_level"`
+	Level            string                 `mapstructure:"log_level" json:"log_level"  default:"console"` // defaults to std log - developer friendly
 	File             string                 `mapstructure:"log_file" json:"log_file"`
 	DisableColors    bool                   `mapstructure:"disable_colors" split_words:"true" json:"disable_colors"`
 	QuoteEmptyFields bool                   `mapstructure:"quote_empty_fields" split_words:"true" json:"quote_empty_fields"`
 	TSFormat         string                 `mapstructure:"ts_format" json:"ts_format"`
 	Fields           map[string]interface{} `mapstructure:"fields" json:"fields"`
+	Format           string                 `mapstructure:"format" json:"format" default:"stdout"`
 }
 
-func ConfigureLogging(config *LoggingConfig) (*logrus.Entry, error) {
-	logger := logrus.New()
-
-	tsFormat := time.RFC3339Nano
-	if config.TSFormat != "" {
-		tsFormat = config.TSFormat
+// trim full path. output in the form directory/file.go.
+func consoleFormatCaller(i interface{}) string {
+	var c string
+	if cc, ok := i.(string); ok {
+		c = cc
 	}
-	// always use the full timestamp
-	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp:    true,
-		DisableTimestamp: false,
-		TimestampFormat:  tsFormat,
-		DisableColors:    config.DisableColors,
-		QuoteEmptyFields: config.QuoteEmptyFields,
-	})
-
-	// use a file if you want
-	if config.File != "" {
-		f, errOpen := os.OpenFile(config.File, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
-		if errOpen != nil {
-			return nil, errOpen
+	if len(c) > 0 {
+		l := strings.Split(c, "/")
+		if len(l) == 1 {
+			return l[0]
 		}
-		logger.SetOutput(f)
-		logger.Infof("Set output file to %s", config.File)
+		return l[len(l)-2] + "/" + l[len(l)-1]
 	}
+	return c
+}
 
-	if config.Level != "" {
-		level, err := logrus.ParseLevel(config.Level)
-		if err != nil {
-			return nil, err
-		}
-		logger.SetLevel(level)
-		logger.Debug("Set log level to: " + logger.GetLevel().String())
+func ConfigureZeroLogging(config *LoggingConfig) {
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	lvl, err := zerolog.ParseLevel(config.Level)
+	if err != nil {
+		log.Error().Err(err).Msg("error parsing log level. defaulting to info level")
+		lvl = zerolog.InfoLevel
 	}
-
-	f := logrus.Fields{}
-	for k, v := range config.Fields {
-		f[k] = v
+	if config.Format == "console" {
+		output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+		output.FormatCaller = consoleFormatCaller
+		log.Logger = zerolog.New(output).Level(lvl).With().Timestamp().CallerWithSkipFrameCount(2).Stack().Logger()
+	} else {
+		log.Logger = zerolog.New(os.Stdout).Level(lvl).With().Timestamp().CallerWithSkipFrameCount(2).Stack().Logger()
 	}
-
-	return logger.WithFields(f), nil
 }

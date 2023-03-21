@@ -175,9 +175,7 @@ func LoadGlobal(filename string) (*GlobalConfiguration, error) {
 		return nil, err
 	}
 
-	if _, err := ConfigureLogging(&config.Logging); err != nil {
-		return nil, err
-	}
+	ConfigureZeroLogging(&config.Logging)
 
 	ConfigureTracing(&config.Tracing)
 

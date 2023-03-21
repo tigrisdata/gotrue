@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"log"
 	"net/http"
 	"net/http/pprof"
 	_ "net/http/pprof"
@@ -28,8 +27,8 @@ import (
 	"github.com/netlify/gotrue/mailer"
 	"github.com/netlify/gotrue/models"
 	"github.com/rs/cors"
+	"github.com/rs/zerolog/log"
 	"github.com/sebest/xff"
-	"github.com/sirupsen/logrus"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -70,22 +69,22 @@ func NewTokenSigner(config *conf.Configuration) *TokenSigner {
 
 func (t *TokenSigner) init() {
 	if t.jwtConfig.RSAPrivateKey == "" && t.jwtConfig.Algorithm == jwa.RS256.String() {
-		log.Fatal("No RSA private key configured")
+		log.Fatal().Msg("No RSA private key configured")
 	}
 	privateKeyData, err := os.ReadFile(t.jwtConfig.RSAPrivateKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	block, _ := pem.Decode(privateKeyData)
 	if block == nil {
-		log.Fatal("block is null for configured rsa private key")
+		log.Fatal().Msg("block is null for configured rsa private key\"")
 		return
 	}
 
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 		return
 	}
 	t.privateKey = privateKey
@@ -120,7 +119,6 @@ func (t *TokenSigner) signUsingHmacWithSHA(token *jwt.Token) (string, error) {
 
 // ListenAndServe starts the REST API
 func (a *API) ListenAndServe(hostAndPort string) {
-	log := logrus.WithField("component", "api")
 	server := &http.Server{
 		Addr:    hostAndPort,
 		Handler: a.handler,
@@ -129,26 +127,26 @@ func (a *API) ListenAndServe(hostAndPort string) {
 	done := make(chan struct{})
 	defer close(done)
 	go func() {
-		waitForTermination(log, done)
+		waitForTermination(done)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		server.Shutdown(ctx)
 	}()
 
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		log.WithError(err).Fatal("http server listen failed")
+		log.Fatal().Err(err).Msg("http server listen failed")
 	}
 }
 
 // WaitForShutdown blocks until the system signals termination or done has a value
-func waitForTermination(log logrus.FieldLogger, done <-chan struct{}) {
+func waitForTermination(done <-chan struct{}) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	select {
 	case sig := <-signals:
-		log.Infof("Triggering shutdown from signal %s", sig)
+		log.Info().Msgf("Triggering shutdown from signal %s", sig)
 	case <-done:
-		log.Infof("Shutting down...")
+		log.Info().Msg("Shutting down...")
 	}
 }
 
@@ -161,19 +159,19 @@ func NewAPI(globalConfig *conf.GlobalConfiguration, config *conf.Configuration, 
 func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfiguration, config *conf.Configuration, db *tigris.Database, version string) *API {
 	cache, err := lru.New(globalConfig.API.TokenCacheSize)
 	if err != nil {
-		log.Fatalf("Couldn't construct token cache %v", err)
+		log.Fatal().Msgf("Couldn't construct token cache %v", err)
 		return nil
 	}
 	api := &API{config: globalConfig, db: db, version: version, tokenSigner: NewTokenSigner(config), encrypter: &crypto.AESBlockEncrypter{Key: globalConfig.DB.EncryptionKey}, tokenCache: cache}
 	jwks, err := NewJKWS(globalConfig, config, version)
 	if err != nil {
-		log.Fatalf("Couldn't construct JWKS %v", err)
+		log.Fatal().Msgf("Couldn't construct JWKS %v", err)
 		return nil
 	}
 
 	openidConf := NewOpenIdConfiguration(globalConfig, config, version)
 	xffmw, _ := xff.Default()
-	logger := newStructuredLogger(logrus.StandardLogger())
+	logger := newStructuredLogger(log.Logger)
 
 	r := newRouter()
 	r.UseBypass(xffmw.Handler)
@@ -311,12 +309,12 @@ func NewAPIFromConfigFile(filename string, version string) (*API, *conf.Configur
 
 	ctx, err := WithInstanceConfig(context.Background(), config, uuid.Nil)
 	if err != nil {
-		logrus.Fatalf("Error loading instance config: %+v", err)
+		log.Fatal().Msgf("Error loading instance config: %+v", err)
 	}
 
 	db, err := tigris.OpenDatabase(context.TODO(), nil, &models.AuditLogEntry{})
 	if err != nil {
-		logrus.Fatalf("Error opening database 2 : %+v", err)
+		log.Fatal().Msgf("Error opening database 2 : %+v", err)
 	}
 
 	return NewAPIWithVersion(ctx, globalConfig, config, db, version), config, nil

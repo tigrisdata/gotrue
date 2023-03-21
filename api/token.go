@@ -14,7 +14,7 @@ import (
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/metering"
 	"github.com/netlify/gotrue/models"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 // GoTrueClaims is a struct that used for JWT claims
@@ -62,7 +62,7 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 	user, err := models.FindUserByEmailAndAudience(r.Context(), a.db, instanceID, username, aud)
 	if err != nil {
 		if models.IsNotFoundError(err) {
-			logrus.WithField("email", username).Warn("No user found with that email, or password invalid.")
+			log.Warn().Str("email", username).Msg("No user found with that email, or password invalid.")
 			return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 		}
 		return internalServerError("Database error finding user").WithInternalError(err)
@@ -73,7 +73,7 @@ func (a *API) ResourceOwnerPasswordGrant(ctx context.Context, w http.ResponseWri
 	}
 
 	if !user.Authenticate(password, a.encrypter) {
-		logrus.WithField("email", username).Warn("No user found with that email, or password invalid: Auth failure")
+		log.Warn().Str("email", username).Msg("No user found with that email, or password invalid: Auth failure")
 		return oauthError("invalid_grant", "No user found with that email, or password invalid.")
 	}
 
@@ -294,7 +294,7 @@ func getExpiry(tokenPayload string) int64 {
 	var payload map[string]interface{}
 	err := json.Unmarshal(jsonString, &payload)
 	if err != nil {
-		logrus.WithError(err).Warn("Failed to parse expiry from cached token - disabling cache")
+		log.Warn().Err(err).Msg("Failed to parse expiry from cached token - disabling cache")
 		return 0
 	}
 	return int64(payload["exp"].(float64))
