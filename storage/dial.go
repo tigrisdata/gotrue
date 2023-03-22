@@ -7,14 +7,14 @@ import (
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/netlify/gotrue/conf"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	tconf "github.com/tigrisdata/tigris-client-go/config"
 	"github.com/tigrisdata/tigris-client-go/driver"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Client, error) {
-	logrus.Infof("creating tigris driver for url: %s project: %s", config.DB.URL, config.DB.Project)
+	log.Info().Msgf("creating tigris driver for url: %s project: %s", config.DB.URL, config.DB.Project)
 	// ToDo: project creation is not needed here, this is to create the project in the local setup.
 
 	var drv driver.Driver
@@ -32,28 +32,30 @@ func Client(ctx context.Context, config *conf.GlobalConfiguration) (*tigris.Clie
 	for i := 0; i < 3; i++ {
 		drv, err = driver.NewDriver(ctx, dbConfig)
 		if err != nil {
-			logrus.WithError(err).Warn("Failed to create Tigris driver. Retrying")
+			log.Warn().Err(err).Msg("Failed to create Tigris driver. Retrying")
 			time.Sleep(5 * time.Second)
 			continue
 		}
 
 		_, err := drv.Health(ctx)
 		if err != nil {
-			logrus.WithError(err).Warn("Failed to health check tigris. Retrying")
+			log.Warn().Err(err).Msg("Failed to health check tigris. Retrying")
 			time.Sleep(5 * time.Second)
 			continue
+		} else {
+			break
 		}
 	}
 
 	if err != nil {
-		logrus.WithError(err).Error("Failed to construct Tigris driver")
+		log.Err(err).Msg("Failed to construct Tigris driver")
 		return nil, err
 	}
-	logrus.Infof("creating tigris driver successful for url: %s project: %s", config.DB.URL, config.DB.Project)
+	log.Info().Msgf("creating tigris driver successful for url: %s project: %s", config.DB.URL, config.DB.Project)
 
 	_, err = drv.CreateProject(ctx, config.DB.Project)
 	if err != nil && err.Error() != "project already exist" {
-		logrus.Errorf("Failed to create tigris project: %+v", err)
+		log.Error().Msgf("Failed to create tigris project: %+v", err)
 		return nil, err
 	}
 	// close the driver after creating project
