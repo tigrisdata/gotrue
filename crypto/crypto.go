@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 // SecureToken creates a new random token
@@ -80,7 +80,7 @@ func (a *AESBlockEncrypter) Decrypt(ciphertextBase64 string, ivBase64 string) (d
 
 	ivBytes, err := base64.StdEncoding.DecodeString(ivBase64)
 	if err != nil {
-		logrus.Error("Failed to decode iv bytes for user")
+		log.Error().Msg("Failed to decode iv bytes for user")
 	}
 	// Create a new CBC cipher block mode for decryption
 	mode := cipher.NewCBCDecrypter(block, ivBytes)

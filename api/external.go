@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/netlify/gotrue/api/provider"
 	"github.com/netlify/gotrue/models"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -52,8 +52,8 @@ func (a *API) ExternalProviderRedirect(w http.ResponseWriter, r *http.Request) e
 	}
 
 	referrer := a.getReferrer(r)
-	log := getLogEntry(r)
-	log.WithField("provider", providerType).Info("Redirecting to external provider")
+	log := getLogEntry(r).With().Str("provider", providerType).Logger()
+	log.Info().Msg("Redirecting to external provider")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, ExternalProviderClaims{
 		NetlifyMicroserviceClaims: NetlifyMicroserviceClaims{
@@ -324,7 +324,7 @@ func (a *API) redirectErrors(handler apiHandler, w http.ResponseWriter, r *http.
 	}
 }
 
-func getErrorQueryString(err error, errorID string, log logrus.FieldLogger) *url.Values {
+func getErrorQueryString(err error, errorID string, log *zerolog.Logger) *url.Values {
 	q := url.Values{}
 	switch e := err.(type) {
 	case *HTTPError:
@@ -336,15 +336,15 @@ func getErrorQueryString(err error, errorID string, log logrus.FieldLogger) *url
 		if e.Code >= http.StatusInternalServerError {
 			e.ErrorID = errorID
 			// this will get us the stack trace too
-			log.WithError(e.Cause()).Error(e.Error())
+			log.Err(e.Cause()).Msg(e.Error())
 		} else {
-			log.WithError(e.Cause()).Info(e.Error())
+			log.Info().Err(e.Cause()).Msg(e.Error())
 		}
 		q.Set("error_description", e.Message)
 	case *OAuthError:
 		q.Set("error", e.Err)
 		q.Set("error_description", e.Description)
-		log.WithError(e.Cause()).Info(e.Error())
+		log.Info().Err(e.Cause()).Msg(e.Error())
 	case ErrorCause:
 		return getErrorQueryString(e.Cause(), errorID, log)
 	default:

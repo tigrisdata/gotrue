@@ -131,7 +131,8 @@ func recoverer(w http.ResponseWriter, r *http.Request) (context.Context, error) 
 
 			logEntry := getLogEntry(r)
 			if logEntry != nil {
-				logEntry.Panic(rvr, debug.Stack())
+				panicLogger := logEntry.With().Interface("rvr", rvr).Interface("stack", debug.Stack()).Logger()
+				panicLogger.Panic()
 			} else {
 				fmt.Fprintf(os.Stderr, "Panic: %+v\n", rvr)
 				debug.PrintStack()
@@ -160,26 +161,26 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 		if e.Code >= http.StatusInternalServerError {
 			e.ErrorID = errorID
 			// this will get us the stack trace too
-			log.WithError(e.Cause()).Error(e.Error())
+			log.Err(e.Cause()).Msg(e.Error())
 		} else {
-			log.WithError(e.Cause()).Info(e.Error())
+			log.Info().Err(e.Cause()).Msg(e.Error())
 		}
 		if jsonErr := sendJSON(w, e.Code, e); jsonErr != nil {
 			handleError(jsonErr, w, r)
 		}
 	case *OAuthError:
-		log.WithError(e.Cause()).Info(e.Error())
+		log.Info().Err(e.Cause()).Msg(e.Error())
 		if jsonErr := sendJSON(w, http.StatusBadRequest, e); jsonErr != nil {
 			handleError(jsonErr, w, r)
 		}
 	case ErrorCause:
 		handleError(e.Cause(), w, r)
 	default:
-		log.WithError(e).Errorf("Unhandled server error: %s", e.Error())
+		log.Error().Err(e).Msgf("Unhandled server error: %s", e.Error())
 		// hide real error details from response to prevent info leaks
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, writeErr := w.Write([]byte(`{"code":500,"msg":"Internal server error","error_id":"` + errorID + `"}`)); writeErr != nil {
-			log.WithError(writeErr).Error("Error writing generic error message")
+			log.Error().Err(writeErr).Msg("Error writing generic error message")
 		}
 	}
 }
