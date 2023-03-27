@@ -114,6 +114,8 @@ func (t *TokenSigner) signUsingRsa(token *jwt.Token) (string, error) {
 
 // Signs the token with HMAC+SHA
 func (t *TokenSigner) signUsingHmacWithSHA(token *jwt.Token) (string, error) {
+	claims := token.Claims.(*GoTrueClaims)
+	claims.Issuer = t.jwtConfig.Issuer
 	return token.SignedString([]byte(t.jwtConfig.Secret))
 }
 
