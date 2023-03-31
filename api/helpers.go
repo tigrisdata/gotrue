@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -14,6 +16,7 @@ import (
 	"github.com/netlify/gotrue/models"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -212,4 +215,25 @@ func SafeHTTPClient(client *http.Client, log zerolog.Logger) *http.Client {
 	client.Transport = SafeRoundtripper(client.Transport, log)
 
 	return client
+}
+
+var (
+	chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-+")
+)
+
+func GenerateRandomString(prefix string, length int) string {
+	b := make([]rune, length)
+	for i := range b {
+		b[i] = chars[generateRandomInt(len(chars))]
+	}
+	return fmt.Sprintf("%s%s", prefix, string(b))
+}
+
+func generateRandomInt(max int) int {
+	var bytes [8]byte
+	_, err := rand.Read(bytes[:])
+	if err != nil {
+		log.Err(err).Msgf("Failed to generate random int of length: %d", max)
+	}
+	return int(binary.BigEndian.Uint32(bytes[:])) % max
 }

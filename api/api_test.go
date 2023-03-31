@@ -74,7 +74,7 @@ func setupAPIForTestWithCallback(cb func(*conf.GlobalConfiguration, *conf.Config
 		return nil, nil, nil, err
 	}
 
-	database, err := tigrisClient.OpenDatabase(context.TODO(), &models.AuditLogEntry{}, &models.User{}, &models.RefreshToken{}, &models.Instance{})
+	database, err := tigrisClient.OpenDatabase(context.TODO(), &models.AuditLogEntry{}, &models.User{}, &models.RefreshToken{}, &models.Instance{}, &models.Invitation{})
 	if err != nil {
 		tigrisClient.Close()
 		return nil, nil, nil, err

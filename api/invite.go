@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/netlify/gotrue/models"
 	"context"
+
+	"github.com/netlify/gotrue/models"
 )
 
 // InviteParams are the parameters the Signup endpoint accepts
@@ -15,6 +16,7 @@ type InviteParams struct {
 }
 
 // Invite is the endpoint for inviting a new user
+// Tigris uses different Invitation flow that is handled at Invitation.go handler
 func (a *API) Invite(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	instanceID := getInstanceID(ctx)

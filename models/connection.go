@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/tigrisdata/tigris-client-go/tigris"
 	"context"
+
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 type Pagination struct {
@@ -44,6 +45,8 @@ func TruncateAll(database *tigris.Database) error {
 	if _, err := tigris.GetCollection[Instance](database).DeleteAll(ctx); err != nil {
 		return err
 	}
-
+	if _, err := tigris.GetCollection[Invitation](database).DeleteAll(ctx); err != nil {
+		return err
+	}
 	return nil
 }

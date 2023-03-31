@@ -80,7 +80,14 @@ type GlobalConfiguration struct {
 	Tracing           TracingConfig
 	SMTP              SMTPConfiguration
 
-	RateLimitHeader string `split_words:"true"`
+	RateLimitHeader  string                  `split_words:"true"`
+	InvitationConfig InvitationConfiguration `envconfig:"invitation"`
+}
+
+type InvitationConfiguration struct {
+	CodeLength int    `json:"code_length" default:"10"`
+	CodePrefix string `json:"code_prefix" default:"ti_"`
+	HideCode   bool   `json:"hide_code" default:"false"`
 }
 
 // EmailContentConfiguration holds the configuration for emails, both subjects and template URLs.
