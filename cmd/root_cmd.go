@@ -84,7 +84,7 @@ func bootstrapSchemas(ctx context.Context, globalConfig *conf.GlobalConfiguratio
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create tigris project: %+v", err)
 	}
-	db, err := tigrisClient.OpenDatabase(ctx, &models.AuditLogEntry{}, &models.User{}, &models.RefreshToken{}, &models.Instance{})
+	db, err := tigrisClient.OpenDatabase(ctx, &models.AuditLogEntry{}, &models.User{}, &models.RefreshToken{}, &models.Instance{}, &models.Invitation{})
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error opening database: %+v", err)
 	}

@@ -214,6 +214,12 @@ func NewAPIWithVersion(ctx context.Context, globalConfig *conf.GlobalConfigurati
 		r.Get("/authorize", api.ExternalProviderRedirect)
 
 		r.With(api.requireAdminCredentials).Post("/invite", api.Invite)
+		r.Route("/invitations", func(r *router) {
+			r.Get("/", api.ListInvitations)
+			r.Delete("/", api.DeleteInvitation)
+			r.Post("/", api.CreateInvitation)
+			r.Post("/verify", api.VerifyInvitation)
+		})
 
 		r.With(api.requireEmailProvider).Post("/signup", api.Signup)
 		r.With(api.requireEmailProvider).Post("/recover", api.Recover)
