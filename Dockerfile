@@ -15,7 +15,7 @@ RUN make deps
 COPY . /go/src/github.com/netlify/gotrue
 RUN make build
 
-FROM alpine:3.7
+FROM alpine:3.17.3
 RUN adduser -D -u 1000 netlify
 
 RUN apk add --no-cache ca-certificates
