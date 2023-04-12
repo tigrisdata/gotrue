@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/netlify/gotrue/models"
@@ -79,13 +80,13 @@ func (a *API) ListInvitations(w http.ResponseWriter, r *http.Request) error {
 		return internalServerError("Failed to retrieve invitations").WithInternalError(err)
 	}
 	defer itr.Close()
-	var invitations []*models.Invitation
+	var invitations []models.Invitation
 	var invitation models.Invitation
 	for itr.Next(&invitation) {
 		if a.config.InvitationConfig.HideCode {
 			invitation.Code = "" // hide it
 		}
-		invitations = append(invitations, &invitation)
+		invitations = append(invitations, invitation)
 	}
 	return sendJSON(w, http.StatusOK, invitations)
 }
@@ -104,7 +105,7 @@ func (a *API) DeleteInvitation(w http.ResponseWriter, r *http.Request) error {
 		return badRequestError("email must be specified")
 	}
 	if params.Status == "" {
-		return badRequestError("status must be specified")
+		params.Status = InvitationStatusPending
 	}
 	if params.CreatedBy == "" {
 		return badRequestError("created_by must be specified")
@@ -115,7 +116,7 @@ func (a *API) DeleteInvitation(w http.ResponseWriter, r *http.Request) error {
 
 	filter := filter2.Eq("tigris_namespace", params.TigrisNamespace)
 	filter = filter2.And(filter, filter2.Eq("created_by", params.CreatedBy))
-	filter = filter2.And(filter, filter2.Eq("status", params.Status))
+	filter = filter2.And(filter, filter2.Eq("status", strings.ToUpper(params.Status)))
 	filter = filter2.And(filter, filter2.Eq("email", params.Email))
 	filter = filter2.And(filter, filter2.Eq("instance_id", getInstanceID(ctx)))
 
@@ -153,7 +154,7 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 	defer itr.Close()
 	var invitation models.Invitation
 	for itr.Next(&invitation) {
-		if invitation.Code == params.Code && time.Now().UnixMilli() <= invitation.ExpirationTime {
+		if invitation.Code == params.Code && time.Now().UnixMilli() <= invitation.ExpirationTime && invitation.Status == InvitationStatusPending {
 			// mark invitation as accepted
 			invitation.Status = InvitationStatusAccepted
 			_, err := tigris.GetCollection[models.Invitation](a.db).InsertOrReplace(ctx, &invitation)
@@ -163,5 +164,5 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace})
 		}
 	}
-	return unauthorizedError("Could not validate the invitation code against email")
+	return unauthorizedError("Could not validate the invitation code against email. Please check the code and expiration.")
 }

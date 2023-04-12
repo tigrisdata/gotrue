@@ -65,6 +65,9 @@ func (ts *InvitationTestSuite) TestListInvitations() {
 	// list invitations for org_a
 	invitations := listInvitations(ts, "org_a")
 	require.Equal(ts.T(), 3, len(invitations))
+	require.Equal(ts.T(), "e@test.com", invitations[0].Email)
+	require.Equal(ts.T(), "b@test.com", invitations[1].Email)
+	require.Equal(ts.T(), "a@test.com", invitations[2].Email)
 }
 
 // TestDeleteInvitation tests API /invitation route
