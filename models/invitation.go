@@ -10,9 +10,9 @@ import (
 // Invitation tigris specific user invitation
 type Invitation struct {
 	InstanceID      uuid.UUID `json:"instance_id" db:"instance_id"`
-	ID              uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1"`
+	ID              uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1,autoGenerate"`
 	Role            string    `json:"role" db:"role"`
-	Email           string    `json:"email" db:"email" tigris:"primaryKey:2"`
+	Email           string    `json:"email" db:"email"`
 	Code            string    `json:"code" db:"code"`
 	TigrisNamespace string    `json:"tigris_namespace"`
 	CreatedBy       string    `json:"created_by"`
