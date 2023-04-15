@@ -17,7 +17,7 @@ deps: ## Install dependencies.
 	@go mod download
 
 image: ## Build the Docker image.
-	docker build .
+	docker build -t tigrisdata/gotrue .
 
 lint: ## Lint the code.
 	golint $(CHECK_FILES)
