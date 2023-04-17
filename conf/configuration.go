@@ -127,14 +127,16 @@ type MailerConfiguration struct {
 
 // Configuration holds all the per-instance configuration.
 type Configuration struct {
-	SiteURL       string                `json:"site_url" split_words:"true" required:"true"`
-	JWT           JWTConfiguration      `json:"jwt"`
-	SMTP          SMTPConfiguration     `json:"smtp"`
-	Mailer        MailerConfiguration   `json:"mailer"`
-	External      ProviderConfiguration `json:"external"`
-	DisableSignup bool                  `json:"disable_signup" split_words:"true"`
-	Webhook       WebhookConfig         `json:"webhook" split_words:"true"`
-	Cookie        struct {
+	SiteURL          string                `json:"site_url" split_words:"true" required:"true"`
+	TigrisWebsiteURL string                `json:"tigris_website_url" split_words:"true" required:"false"`
+	TigrisConsoleURL string                `json:"tigris_console_url" split_words:"true" required:"false"`
+	JWT              JWTConfiguration      `json:"jwt"`
+	SMTP             SMTPConfiguration     `json:"smtp"`
+	Mailer           MailerConfiguration   `json:"mailer"`
+	External         ProviderConfiguration `json:"external"`
+	DisableSignup    bool                  `json:"disable_signup" split_words:"true"`
+	Webhook          WebhookConfig         `json:"webhook" split_words:"true"`
+	Cookie           struct {
 		Key      string `json:"key"`
 		Duration int    `json:"duration"`
 	} `json:"cookies"`
@@ -239,6 +241,13 @@ func (config *Configuration) ApplyDefaults() {
 
 	if config.Cookie.Duration == 0 {
 		config.Cookie.Duration = 86400
+	}
+
+	if config.TigrisWebsiteURL == "" {
+		config.TigrisWebsiteURL = "https://tigrisdata.com"
+	}
+	if config.TigrisConsoleURL == "" {
+		config.TigrisConsoleURL = "https://console.tigrisdata.cloud"
 	}
 }
 

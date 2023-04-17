@@ -12,7 +12,7 @@ import (
 )
 
 type LoggingConfig struct {
-	Level            string                 `mapstructure:"log_level" json:"log_level"  default:"INFO"`
+	Level            string                 `mapstructure:"log_level" json:"log_level"  default:"DEBUG"`
 	File             string                 `mapstructure:"log_file" json:"log_file"`
 	DisableColors    bool                   `mapstructure:"disable_colors" split_words:"true" json:"disable_colors"`
 	QuoteEmptyFields bool                   `mapstructure:"quote_empty_fields" split_words:"true" json:"quote_empty_fields"`
