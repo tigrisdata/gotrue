@@ -41,7 +41,7 @@ type structuredLoggerEntry struct {
 	Logger zerolog.Logger
 }
 
-func (l *structuredLoggerEntry) Write(status, bytes int, elapsed time.Duration) {
+func (l *structuredLoggerEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ any) {
 	l.Logger = l.Logger.With().
 		Int("status", status).
 		Int64("duration", elapsed.Nanoseconds()).

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -47,10 +48,24 @@ func (a *API) CreateInvitation(w http.ResponseWriter, r *http.Request) error {
 	invitation.Status = InvitationStatusPending
 	invitation.Code = GenerateRandomString(a.config.InvitationConfig.CodePrefix, a.config.InvitationConfig.CodeLength)
 
-	_, err = tigris.GetCollection[models.Invitation](a.db).Insert(ctx, invitation)
+	err = a.db.Tx(ctx, func(ctx context.Context) error {
+		_, err = tigris.GetCollection[models.Invitation](a.db).Insert(ctx, invitation)
+		if err != nil {
+			return err
+		}
+		// send the invitation email
+		mailer := a.Mailer(ctx)
+		err = mailer.TigrisInviteMail(invitation.Email, invitation.CreatedByName, invitation.Code)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
-		return internalServerError("Could not save invitation: %v", err).WithInternalError(err)
+		return internalServerError("Could not create invitation").WithInternalError(err)
 	}
+
 	return sendJSON(w, http.StatusOK, invitation)
 }
 
@@ -161,7 +176,7 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				return internalServerError("Failed to verify invitation").WithInternalError(err).WithInternalMessage("Failed to update status on successful verification")
 			}
-			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace})
+			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace, Role: invitation.Role})
 		}
 	}
 	return unauthorizedError("Could not validate the invitation code against email. Please check the code and expiration.")
