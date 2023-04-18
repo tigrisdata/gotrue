@@ -1,6 +1,8 @@
 package mailer
 
 import (
+	"fmt"
+
 	"github.com/badoux/checkmail"
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/models"
@@ -17,6 +19,11 @@ type TemplateMailer struct {
 const defaultInviteMail = `<h2>You have been invited</h2>
 
 <p>You have been invited to create a user on {{ .SiteURL }}. Follow this link to accept the invite:</p>
+<p><a href="{{ .ConfirmationURL }}">Accept the invite</a></p>`
+
+const tigrisInviteMail = `<h2>You have been invited to Tigris</h2>
+
+<p>You have been invited by {{ .InvitedByName }} to create a user on {{ .ConsoleURL }}. Follow this link to accept the invite:</p>
 <p><a href="{{ .ConfirmationURL }}">Accept the invite</a></p>`
 
 const defaultConfirmationMail = `<h2>Confirm your signup</h2>
@@ -59,6 +66,24 @@ func (m *TemplateMailer) InviteMail(user *models.User, referrerURL string) error
 		string(withDefault(m.Config.Mailer.Subjects.Invite, "You have been invited")),
 		enforceRelativeURL(m.Config.Mailer.Templates.Invite),
 		defaultInviteMail,
+		data,
+	)
+}
+
+// TigrisInviteMail sends a invite mail to the invited user
+func (m *TemplateMailer) TigrisInviteMail(email string, invitedByName string, code string) error {
+	confirmationUrl := fmt.Sprintf("%s/invite?code=%s", m.Config.TigrisConsoleURL, code)
+	data := map[string]interface{}{
+		"ConfirmationURL": confirmationUrl,
+		"InvitedByName":   invitedByName,
+		"ConsoleURL":      m.Config.TigrisConsoleURL,
+	}
+
+	return m.Mailer.Mail(
+		email,
+		withDefault(m.Config.Mailer.Subjects.Invite, "You have been invited"),
+		enforceRelativeURL(m.Config.Mailer.Templates.Invite),
+		tigrisInviteMail,
 		data,
 	)
 }

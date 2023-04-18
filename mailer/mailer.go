@@ -13,7 +13,10 @@ import (
 // Mailer defines the interface a mailer must implement.
 type Mailer interface {
 	Send(user *models.User, subject, body string, data map[string]interface{}) error
+	// not used by tigris
 	InviteMail(user *models.User, referrerURL string) error
+	// used by tigris
+	TigrisInviteMail(email string, invitedByName string, code string) error
 	ConfirmationMail(user *models.User, referrerURL string) error
 	RecoveryMail(user *models.User, referrerURL string) error
 	EmailChangeMail(user *models.User, referrerURL string) error

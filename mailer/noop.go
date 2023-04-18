@@ -13,6 +13,10 @@ func (m *noopMailer) InviteMail(user *models.User, referrerURL string) error {
 	return nil
 }
 
+func (m *noopMailer) TigrisInviteMail(email string, invitedByName string, code string) error {
+	return nil
+}
+
 func (m *noopMailer) ConfirmationMail(user *models.User, referrerURL string) error {
 	return nil
 }
