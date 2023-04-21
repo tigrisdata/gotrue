@@ -23,7 +23,7 @@ const defaultInviteMail = `<h2>You have been invited</h2>
 
 const tigrisInviteMail = `<h2>You have been invited to Tigris</h2>
 
-<p>You have been invited by {{ .InvitedByName }} to create a user on {{ .ConsoleURL }}. Follow this link to accept the invite:</p>
+<p>You have been invited by {{ .InvitedByName }} to create a user on {{ .WebsiteURL }}. Follow this link to accept the invite:</p>
 <p><a href="{{ .ConfirmationURL }}">Accept the invite</a></p>`
 
 const defaultConfirmationMail = `<h2>Confirm your signup</h2>
@@ -76,7 +76,7 @@ func (m *TemplateMailer) TigrisInviteMail(email string, invitedByName string, co
 	data := map[string]interface{}{
 		"ConfirmationURL": confirmationUrl,
 		"InvitedByName":   invitedByName,
-		"ConsoleURL":      m.Config.TigrisConsoleURL,
+		"WebsiteURL":      m.Config.TigrisWebsiteURL,
 	}
 
 	return m.Mailer.Mail(
