@@ -9,15 +9,16 @@ import (
 
 // Invitation tigris specific user invitation
 type Invitation struct {
-	InstanceID      uuid.UUID `json:"instance_id" db:"instance_id"`
-	ID              uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1,autoGenerate"`
-	Role            string    `json:"role" db:"role"`
-	Email           string    `json:"email" db:"email"`
-	Code            string    `json:"code" db:"code"`
-	TigrisNamespace string    `json:"tigris_namespace"`
-	CreatedBy       string    `json:"created_by"`
-	CreatedByName   string    `json:"created_by_name"`
-	Status          string    `json:"status"`
+	InstanceID          uuid.UUID `json:"instance_id" db:"instance_id"`
+	ID                  uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1,autoGenerate"`
+	Role                string    `json:"role" db:"role"`
+	Email               string    `json:"email" db:"email"`
+	Code                string    `json:"code" db:"code"`
+	TigrisNamespace     string    `json:"tigris_namespace"`
+	TigrisNamespaceName string    `json:"tigris_namespace_name"`
+	CreatedBy           string    `json:"created_by"`
+	CreatedByName       string    `json:"created_by_name"`
+	Status              string    `json:"status"`
 
 	ExpirationTime int64 `json:"expiration_time"`
 
