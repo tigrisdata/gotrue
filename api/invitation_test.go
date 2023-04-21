@@ -44,7 +44,7 @@ func (ts *InvitationTestSuite) SetupTest() {
 
 // TestCreateInvitation tests API /invitation route
 func (ts *InvitationTestSuite) TestCreateInvitation() {
-	data := createInvitation(ts, "a@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	data := createInvitation(ts, "a@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
 	assert.Equal(ts.T(), "a@test.com", data.Email)
 	assert.Equal(ts.T(), "org_a", data.TigrisNamespace)
 	assert.Equal(ts.T(), "google2|123", data.CreatedBy)
@@ -56,11 +56,11 @@ func (ts *InvitationTestSuite) TestCreateInvitation() {
 // TestCreateInvitation tests API /invitation route
 func (ts *InvitationTestSuite) TestListInvitations() {
 	// create 5 invitations, 3 for org_a and 2 for org_b
-	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
 
 	// list invitations for org_a
 	invitations := listInvitations(ts, "org_a")
@@ -73,11 +73,11 @@ func (ts *InvitationTestSuite) TestListInvitations() {
 // TestDeleteInvitation tests API /invitation route
 func (ts *InvitationTestSuite) TestDeleteInvitation() {
 	// create 5 invitations, 3 for org_a and 2 for org_b
-	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
 
 	// list invitations for org_a
 	invitations := listInvitations(ts, "org_a")
@@ -93,7 +93,7 @@ func (ts *InvitationTestSuite) TestDeleteInvitation() {
 // TestInvitationVerification tests API /invitation/verify route
 func (ts *InvitationTestSuite) TestInvitationVerification() {
 	email := "abc@test.com"
-	_ = createInvitation(ts, "abc@test.com", "editor", "org_a", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "abc@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
 
 	// list invitations for org_a
 	invitations := listInvitations(ts, "org_a")
@@ -108,6 +108,7 @@ func (ts *InvitationTestSuite) TestInvitationVerification() {
 	data := VerifyInvitationResponse{}
 	require.NoError(ts.T(), json.NewDecoder(w1.Body).Decode(&data))
 	require.Equal(ts.T(), "org_a", data.TigrisNamespace)
+	require.Equal(ts.T(), "org_a_display_name", data.TigrisNamespaceName)
 
 	// with invalid code
 	w2 := httptest.NewRecorder()
@@ -163,16 +164,17 @@ func deleteInvitation(ts *InvitationTestSuite, email string, createdBy string, s
 	require.Equal(ts.T(), http.StatusOK, w.Code)
 }
 
-func createInvitation(ts *InvitationTestSuite, email string, role string, tigrisNamespace string, createdBy string, createdByName string, expirationTime int64) models.Invitation {
+func createInvitation(ts *InvitationTestSuite, email string, role string, tigrisNamespace string, tigrisNamespaceName string, createdBy string, createdByName string, expirationTime int64) models.Invitation {
 	// Request body
 	var buffer bytes.Buffer
 	require.NoError(ts.T(), json.NewEncoder(&buffer).Encode(map[string]interface{}{
-		"email":            email,
-		"role":             role,
-		"tigris_namespace": tigrisNamespace,
-		"created_by":       createdBy,
-		"created_by_name":  createdByName,
-		"expiration_time":  expirationTime,
+		"email":                 email,
+		"role":                  role,
+		"tigris_namespace":      tigrisNamespace,
+		"tigris_namespace_name": tigrisNamespaceName,
+		"created_by":            createdBy,
+		"created_by_name":       createdByName,
+		"expiration_time":       expirationTime,
 	}))
 
 	// Setup request

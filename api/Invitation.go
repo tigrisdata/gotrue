@@ -30,8 +30,9 @@ type VerifyInvitationParams struct {
 }
 
 type VerifyInvitationResponse struct {
-	TigrisNamespace string `json:"tigris_namespace"`
-	Role            string `json:"role"`
+	TigrisNamespace     string `json:"tigris_namespace"`
+	TigrisNamespaceName string `json:"tigris_namespace_name"`
+	Role                string `json:"role"`
 }
 
 func (a *API) CreateInvitation(w http.ResponseWriter, r *http.Request) error {
@@ -176,7 +177,7 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				return internalServerError("Failed to verify invitation").WithInternalError(err).WithInternalMessage("Failed to update status on successful verification")
 			}
-			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace, Role: invitation.Role})
+			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace, TigrisNamespaceName: invitation.TigrisNamespaceName, Role: invitation.Role})
 		}
 	}
 	return unauthorizedError("Could not validate the invitation code against email. Please check the code and expiration.")
