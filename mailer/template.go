@@ -72,7 +72,7 @@ func (m *TemplateMailer) InviteMail(user *models.User, referrerURL string) error
 
 // TigrisInviteMail sends a invite mail to the invited user
 func (m *TemplateMailer) TigrisInviteMail(email string, invitedByName string, code string) error {
-	confirmationUrl := fmt.Sprintf("%s/invite?code=%s", m.Config.TigrisConsoleURL, code)
+	confirmationUrl := fmt.Sprintf("%s/invitation?code=%s", m.Config.TigrisConsoleURL, code)
 	data := map[string]interface{}{
 		"ConfirmationURL": confirmationUrl,
 		"InvitedByName":   invitedByName,
