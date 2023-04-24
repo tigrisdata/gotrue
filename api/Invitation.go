@@ -161,7 +161,7 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 	filter := filter2.Eq("email", params.Email)
 	filter = filter2.And(filter, filter2.Eq("status", InvitationStatusPending))
 	filter = filter2.And(filter, filter2.Eq("code", params.Code))
-	filter = filter2.Eq("instance_id", getInstanceID(ctx))
+	filter = filter2.And(filter, filter2.Eq("instance_id", getInstanceID(ctx)))
 
 	itr, err := tigris.GetCollection[models.Invitation](a.db).Read(ctx, filter)
 	if err != nil {
