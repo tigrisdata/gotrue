@@ -56,7 +56,7 @@ func (a *API) CreateInvitation(w http.ResponseWriter, r *http.Request) error {
 		}
 		// send the invitation email
 		mailer := a.Mailer(ctx)
-		err = mailer.TigrisInviteMail(invitation.Email, invitation.CreatedByName, invitation.Code)
+		err = mailer.TigrisInviteMail(invitation.Email, invitation.CreatedByName, invitation.Code, invitation.TigrisNamespace, invitation.TigrisNamespaceName, invitation.Role, invitation.ExpirationTime)
 		if err != nil {
 			return err
 		}
