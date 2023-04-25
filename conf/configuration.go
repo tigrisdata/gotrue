@@ -85,7 +85,7 @@ type GlobalConfiguration struct {
 }
 
 type InvitationConfiguration struct {
-	CodeLength int    `json:"code_length" default:"10"`
+	CodeLength int    `json:"code_length" default:"30"`
 	CodePrefix string `json:"code_prefix" default:"ti_"`
 	HideCode   bool   `json:"hide_code" default:"false"`
 }
@@ -123,6 +123,13 @@ type MailerConfiguration struct {
 	Subjects    EmailContentConfiguration `json:"subjects"`
 	Templates   EmailContentConfiguration `json:"templates"`
 	URLPaths    EmailContentConfiguration `json:"url_paths"`
+	Type        string                    `json:"type"`
+	CustomerIO  CustomerIOConfiguration   `json:"customerio"`
+}
+
+type CustomerIOConfiguration struct {
+	ApiKey                   string `json:"api_key"  split_words:"true" `
+	UserInvitationTemplateId string `json:"user_invitation_template_id" split_words:"true"`
 }
 
 // Configuration holds all the per-instance configuration.

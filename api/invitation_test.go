@@ -50,7 +50,7 @@ func (ts *InvitationTestSuite) TestCreateInvitation() {
 	assert.Equal(ts.T(), "google2|123", data.CreatedBy)
 	assert.Equal(ts.T(), "org_a admin username", data.CreatedByName)
 	assert.Equal(ts.T(), "editor", data.Role)
-	assert.Equal(ts.T(), 13, len(data.Code)) // 10 default + length of default prefix
+	assert.Equal(ts.T(), 33, len(data.Code)) // 30 default + length of default prefix
 }
 
 // TestCreateInvitation tests API /invitation route
