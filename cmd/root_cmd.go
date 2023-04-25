@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/netlify/gotrue/mailer"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	tconf "github.com/tigrisdata/tigris-client-go/config"
@@ -43,6 +44,8 @@ func execWithConfig(cmd *cobra.Command, fn func(globalConfig *conf.GlobalConfigu
 
 	db := bootstrapSchemas(context.TODO(), globalConfig)
 
+	// verify mailer configuration on startup
+	_ = mailer.NewMailer(config)
 	fn(globalConfig, config, db)
 }
 
