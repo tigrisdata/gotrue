@@ -218,7 +218,7 @@ func SafeHTTPClient(client *http.Client, log zerolog.Logger) *http.Client {
 }
 
 var (
-	chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-+")
+	chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
 )
 
 func GenerateRandomString(prefix string, length int) string {
