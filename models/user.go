@@ -33,9 +33,9 @@ type UserAppMetadata struct {
 
 // User represents a registered user with email/password authentication
 type User struct {
-	InstanceID        uuid.UUID `json:"instance_id" db:"instance_id"`
+	InstanceID        uuid.UUID `json:"instance_id" db:"instance_id" tigris:"index"`
 	ID                uuid.UUID `json:"id" db:"id"  tigris:"primaryKey:1"`
-	Aud               string    `json:"aud" db:"aud"`
+	Aud               string    `json:"aud" db:"aud" tigris:"index"`
 	Role              string    `json:"role" db:"role"`
 	Email             string    `json:"email" db:"email" tigris:"primaryKey:2"`
 	EncryptedPassword string    `json:"encrypted_password" db:"encrypted_password"`
@@ -59,7 +59,7 @@ type User struct {
 	AppMetaData  *UserAppMetadata `json:"app_metadata" db:"app_metadata"`
 	UserMetaData JSONMap          `json:"user_metadata" db:"user_metadata"`
 
-	IsSuperAdmin bool `json:"is_super_admin" db:"is_super_admin"`
+	IsSuperAdmin bool `json:"is_super_admin" db:"is_super_admin" tigris:"index"`
 
 	CreatedAt *time.Time `json:"created_at,omitempty" db:"created_at" tigris:"default:now(),createdAt"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty" db:"updated_at" tigris:"default:now(),updatedAt"`
