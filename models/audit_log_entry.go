@@ -50,7 +50,7 @@ var actionLogTypeMap = map[AuditAction]auditLogType{
 // AuditLogEntry is the database model for audit log entries.
 type AuditLogEntry struct {
 	ID         uuid.UUID `json:"id" db:"id"  tigris:"primaryKey"`
-	InstanceID uuid.UUID `json:"instance_id" db:"instance_id"`
+	InstanceID uuid.UUID `json:"instance_id" db:"instance_id" tigris:"index"`
 	Payload    JSONMap   `json:"payload" db:"payload"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
