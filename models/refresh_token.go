@@ -3,24 +3,25 @@ package models
 import (
 	"time"
 
-	"github.com/netlify/gotrue/storage/namespace"
-	"github.com/netlify/gotrue/crypto"
-	"github.com/pkg/errors"
-	"github.com/tigrisdata/tigris-client-go/tigris"
 	"context"
-	"github.com/tigrisdata/tigris-client-go/filter"
-	"github.com/tigrisdata/tigris-client-go/fields"
+
 	"github.com/google/uuid"
+	"github.com/netlify/gotrue/crypto"
+	"github.com/netlify/gotrue/storage/namespace"
+	"github.com/pkg/errors"
+	"github.com/tigrisdata/tigris-client-go/fields"
+	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 // RefreshToken is the database model for refresh tokens.
 type RefreshToken struct {
-	InstanceID uuid.UUID `json:"instance_id" db:"instance_id"`
+	InstanceID uuid.UUID `json:"instance_id" db:"instance_id" tigris:"index"`
 	ID         uuid.UUID `json:"id" db:"id" tigris:"primaryKey"`
 
 	Token string `json:"token" db:"token"`
 
-	UserID uuid.UUID `json:"user_id" db:"user_id"`
+	UserID uuid.UUID `json:"user_id" db:"user_id" tigris:"index"`
 
 	Revoked   bool      `json:"revoked" db:"revoked"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`

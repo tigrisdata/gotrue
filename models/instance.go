@@ -3,14 +3,15 @@ package models
 import (
 	"time"
 
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/netlify/gotrue/conf"
 	"github.com/netlify/gotrue/storage/namespace"
 	"github.com/pkg/errors"
-	"context"
-	"github.com/tigrisdata/tigris-client-go/tigris"
-	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/fields"
+	"github.com/tigrisdata/tigris-client-go/filter"
+	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
 const baseConfigKey = ""
