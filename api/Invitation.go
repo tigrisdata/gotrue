@@ -50,13 +50,37 @@ func (a *API) CreateInvitation(w http.ResponseWriter, r *http.Request) error {
 	invitation.Code = GenerateRandomString(a.config.InvitationConfig.CodePrefix, a.config.InvitationConfig.CodeLength)
 
 	err = a.db.Tx(ctx, func(ctx context.Context) error {
-		_, err = tigris.GetCollection[models.Invitation](a.db).Insert(ctx, invitation)
-		if err != nil {
-			return err
+		// check if the invitation already exists
+		readFilter := filter2.Eq("tigris_namespace", invitation.TigrisNamespace)
+		readFilter = filter2.And(readFilter, filter2.Eq("email", invitation.Email))
+		readFilter = filter2.And(readFilter, filter2.Eq("instance_id", invitation.InstanceID))
+		readFilter = filter2.And(readFilter, filter2.Eq("status", InvitationStatusPending))
+		readFilter = filter2.And(readFilter, filter2.Eq("created_by", invitation.CreatedBy))
+
+		existingInvitation, err := tigris.GetCollection[models.Invitation](a.db).ReadOne(ctx, readFilter)
+		var effectiveInvitation *models.Invitation
+		if existingInvitation != nil && err == nil {
+			// update existing invitation
+			existingInvitation.ExpirationTime = invitation.ExpirationTime
+			existingInvitation.Status = InvitationStatusPending
+			existingInvitation.Code = invitation.Code
+			_, err := tigris.GetCollection[models.Invitation](a.db).InsertOrReplace(ctx, existingInvitation)
+			if err != nil {
+				return err
+			}
+			effectiveInvitation = existingInvitation
+		} else {
+			// insert fresh entry
+			_, err = tigris.GetCollection[models.Invitation](a.db).Insert(ctx, invitation)
+			if err != nil {
+				return err
+			}
+			effectiveInvitation = invitation
 		}
+
 		// send the invitation email
 		mailer := a.Mailer(ctx)
-		err = mailer.TigrisInviteMail(invitation.Email, invitation.CreatedByName, invitation.Code, invitation.TigrisNamespace, invitation.TigrisNamespaceName, invitation.Role, invitation.ExpirationTime)
+		err = mailer.TigrisInviteMail(effectiveInvitation.Email, effectiveInvitation.CreatedByName, effectiveInvitation.Code, effectiveInvitation.TigrisNamespace, effectiveInvitation.TigrisNamespaceName, effectiveInvitation.Role, effectiveInvitation.ExpirationTime)
 		if err != nil {
 			return err
 		}
