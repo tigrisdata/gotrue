@@ -63,7 +63,6 @@ func (a *API) CreateInvitation(w http.ResponseWriter, r *http.Request) error {
 			// update existing invitation
 			existingInvitation.ExpirationTime = invitation.ExpirationTime
 			existingInvitation.Status = InvitationStatusPending
-			existingInvitation.Code = invitation.Code
 			_, err := tigris.GetCollection[models.Invitation](a.db).InsertOrReplace(ctx, existingInvitation)
 			if err != nil {
 				return err
