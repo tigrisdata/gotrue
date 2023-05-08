@@ -424,6 +424,7 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	listUsersFilter := filter.Eq("aud", aud)
 	listUsersFilter = filter.And(listUsersFilter, filter.Eq("instance_id", instanceID.String()))
 
+	listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_project", tigrisProject))
 	if tigrisNamespace != "" {
 		listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_namespace", tigrisNamespace))
 	}
@@ -441,8 +442,8 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	var user User
 	for it.Next(&user) {
 		u := user
-		if tigrisProject != "" && u.AppMetaData != nil {
-			if !(u.AppMetaData.TigrisProject == "" || u.AppMetaData.TigrisProject == tigrisProject) {
+		if u.AppMetaData != nil {
+			if u.AppMetaData.TigrisProject != tigrisProject {
 				continue
 			}
 		}

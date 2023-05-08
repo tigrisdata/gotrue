@@ -121,7 +121,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 		Page:    1,
 		PerPage: 50,
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", "", ts.encrypter)
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", "test", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 	//ToDo: pagination related
@@ -134,7 +134,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 	}
 	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
-	require.Len(ts.T(), n, 1)
+	require.Len(ts.T(), n, 0)
 }
 
 func (ts *UserTestSuite) TestFindUserByID() {
