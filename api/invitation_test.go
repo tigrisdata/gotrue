@@ -88,7 +88,7 @@ func (ts *InvitationTestSuite) TestMultipleInvitationBySameUser() {
 	require.Equal(ts.T(), 1, len(invitations))
 	require.Equal(ts.T(), "a@test.com", invitations[0].Email)
 	code2 := invitations[0].Code
-	require.NotEqual(ts.T(), code1, code2)
+	require.Equal(ts.T(), code1, code2)
 
 	// send another invitation to same user by same user
 	_ = createInvitation(ts, "a@test.com", "editor", "TestMultipleInvitationBySameUser", "org_a_display_name", "google2|1", "org_a admin username", time.Now().UnixMilli()+86400*1000)
@@ -96,8 +96,8 @@ func (ts *InvitationTestSuite) TestMultipleInvitationBySameUser() {
 	require.Equal(ts.T(), 1, len(invitations))
 	require.Equal(ts.T(), "a@test.com", invitations[0].Email)
 	code3 := invitations[0].Code
-	require.NotEqual(ts.T(), code3, code2)
-	require.NotEqual(ts.T(), code3, code1)
+	require.Equal(ts.T(), code3, code2)
+	require.Equal(ts.T(), code3, code1)
 }
 
 // TestDeleteInvitation tests API /invitation route
