@@ -10,7 +10,7 @@ help: ## Show this help.
 all: vet test build ## Run the tests and build the binary.
 
 build: ## Build the binary.
-	go build -ldflags "-X github.com/netlify/gotrue/cmd.Version=`git rev-parse HEAD`"
+	go build -tags tigris_http,tigris_grpc -ldflags "-X github.com/netlify/gotrue/cmd.Version=`git rev-parse HEAD`"
 
 deps: ## Install dependencies.
 	@go install golang.org/x/lint/golint
@@ -24,7 +24,7 @@ lint: ## Lint the code.
 
 test: ## Run tests.
 	$(DOCKER_COMPOSE) up --no-build --detach tigris
-	go test -p 1 -v $(CHECK_FILES)
+	go test -tags tigris_http,tigris_grpc -p 1 -v $(CHECK_FILES)
 
 vet: # Vet the code
 	go vet $(CHECK_FILES)
