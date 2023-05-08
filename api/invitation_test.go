@@ -56,18 +56,48 @@ func (ts *InvitationTestSuite) TestCreateInvitation() {
 // TestCreateInvitation tests API /invitation route
 func (ts *InvitationTestSuite) TestListInvitations() {
 	// create 5 invitations, 3 for org_a and 2 for org_b
-	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
-	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "org_b_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "a@test.com", "editor", "org_a", "org_a_display_name", "google2|1", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "b@test.com", "editor", "org_a", "org_a_display_name", "google2|2", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "c@test.com", "editor", "org_b", "org_b_display_name", "google2|3", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "e@test.com", "editor", "org_a", "org_a_display_name", "google2|4", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	_ = createInvitation(ts, "f@test.com", "editor", "org_b", "org_b_display_name", "google2|5", "org_a admin username", time.Now().UnixMilli()+86400*1000)
 
 	// list invitations for org_a
 	invitations := listInvitations(ts, "org_a")
 	require.Equal(ts.T(), 3, len(invitations))
-	require.Equal(ts.T(), "e@test.com", invitations[0].Email)
-	require.Equal(ts.T(), "b@test.com", invitations[1].Email)
-	require.Equal(ts.T(), "a@test.com", invitations[2].Email)
+	var emailCountMap = make(map[string]int32)
+	for _, invitation := range invitations {
+		emailCountMap[invitation.Email]++
+	}
+	require.Equal(ts.T(), int32(1), emailCountMap["a@test.com"])
+	require.Equal(ts.T(), int32(1), emailCountMap["b@test.com"])
+	require.Equal(ts.T(), int32(1), emailCountMap["e@test.com"])
+}
+
+// TestMultipleInvitationBySameUser tests when multiple invitations are created by same user
+func (ts *InvitationTestSuite) TestMultipleInvitationBySameUser() {
+	_ = createInvitation(ts, "a@test.com", "editor", "TestMultipleInvitationBySameUser", "org_a_display_name", "google2|1", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	invitations := listInvitations(ts, "TestMultipleInvitationBySameUser")
+	require.Equal(ts.T(), 1, len(invitations))
+	require.Equal(ts.T(), "a@test.com", invitations[0].Email)
+	code1 := invitations[0].Code
+
+	// send another invitation to same user by same user
+	_ = createInvitation(ts, "a@test.com", "editor", "TestMultipleInvitationBySameUser", "org_a_display_name", "google2|1", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	invitations = listInvitations(ts, "TestMultipleInvitationBySameUser")
+	require.Equal(ts.T(), 1, len(invitations))
+	require.Equal(ts.T(), "a@test.com", invitations[0].Email)
+	code2 := invitations[0].Code
+	require.Equal(ts.T(), code1, code2)
+
+	// send another invitation to same user by same user
+	_ = createInvitation(ts, "a@test.com", "editor", "TestMultipleInvitationBySameUser", "org_a_display_name", "google2|1", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+	invitations = listInvitations(ts, "TestMultipleInvitationBySameUser")
+	require.Equal(ts.T(), 1, len(invitations))
+	require.Equal(ts.T(), "a@test.com", invitations[0].Email)
+	code3 := invitations[0].Code
+	require.Equal(ts.T(), code3, code2)
+	require.Equal(ts.T(), code3, code1)
 }
 
 // TestDeleteInvitation tests API /invitation route

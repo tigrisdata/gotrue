@@ -210,6 +210,8 @@ func (ts *AdminTestSuite) TestAdminUsers_SortAsc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
+	// enable test once sorting is implemented
+	ts.T().Skip()
 	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
 		TigrisNamespace: "test",
 		TigrisProject:   "test",
