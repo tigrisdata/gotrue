@@ -293,7 +293,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
 
 	// Setup request
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/admin/users?filter=User", nil)
+	req := httptest.NewRequest(http.MethodGet, "/admin/users?filter=example&tigris_project=test", nil)
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", ts.token))
 
@@ -307,7 +307,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
 	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
 
 	require.Len(ts.T(), data.Users, 1)
-	assert.Equal(ts.T(), "test@example.com", data.Users[0].Email)
+	assert.Equal(ts.T(), "test1@example.com", data.Users[0].Email)
 }
 
 // TestAdminUsers_FilterTigrisProject tests API /admin/users route - creates 3 users for a test_namespace with different projects and queries them by tigris_project
@@ -361,7 +361,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	}{}
 	require.NoError(ts.T(), json.NewDecoder(w.Body).Decode(&data))
 
-	require.Len(ts.T(), data.Users, 2)
+	require.Len(ts.T(), data.Users, 1)
 }
 
 // TestAdminUsers_EmptyResponse tests API /admin/users route - validates the empty response is an empty array for users
