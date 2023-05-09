@@ -25,7 +25,7 @@ func (m *CustomerIOMailer) InviteMail(user *models.User, referrerURL string) err
 }
 
 func (m *CustomerIOMailer) TigrisInviteMail(email string, invitedByName string, code string, invitedOrgCode string, invitedOrgName string, role string, expirationTime int64) error {
-	invitationURL := fmt.Sprintf("%s/invitation?code=%s", m.Config.TigrisConsoleURL, code)
+	invitationURL := fmt.Sprintf("%s/invitation?code=%s&email=%s", m.Config.TigrisConsoleURL, code, email)
 	request := customerio.SendEmailRequest{
 		To:                     email,
 		TransactionalMessageID: m.templateId,
