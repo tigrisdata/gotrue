@@ -424,7 +424,6 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	listUsersFilter := filter.Eq("aud", aud)
 	listUsersFilter = filter.And(listUsersFilter, filter.Eq("instance_id", instanceID.String()))
 
-	listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_project", tigrisProject))
 	if tigrisNamespace != "" {
 		listUsersFilter = filter.And(listUsersFilter, filter.Eq("app_metadata.tigris_namespace", tigrisNamespace))
 	}
@@ -442,10 +441,8 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 	var user User
 	for it.Next(&user) {
 		u := user
-		if u.AppMetaData != nil {
-			if u.AppMetaData.TigrisProject != tigrisProject {
-				continue
-			}
+		if u.AppMetaData == nil || u.AppMetaData.TigrisProject != tigrisProject {
+			continue
 		}
 		// either the project field doesn't exist - this is required for backward compatibility
 		// or it has to match the requested project name
