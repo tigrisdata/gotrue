@@ -27,6 +27,8 @@ type DeleteInvitationsParam struct {
 type VerifyInvitationParams struct {
 	Email string `json:"email"`
 	Code  string `json:"code"`
+	// When this flag is used, invitation doesn't get marked as accepted.
+	Dry bool `json:"dry"`
 }
 
 type VerifyInvitationResponse struct {
@@ -194,11 +196,13 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 	var invitation models.Invitation
 	for itr.Next(&invitation) {
 		if invitation.Code == params.Code && time.Now().UnixMilli() <= invitation.ExpirationTime && invitation.Status == InvitationStatusPending {
-			// mark invitation as accepted
-			invitation.Status = InvitationStatusAccepted
-			_, err := tigris.GetCollection[models.Invitation](a.db).InsertOrReplace(ctx, &invitation)
-			if err != nil {
-				return internalServerError("Failed to verify invitation").WithInternalError(err).WithInternalMessage("Failed to update status on successful verification")
+			// mark invitation as accepted, if not dry
+			if !params.Dry {
+				invitation.Status = InvitationStatusAccepted
+				_, err := tigris.GetCollection[models.Invitation](a.db).InsertOrReplace(ctx, &invitation)
+				if err != nil {
+					return internalServerError("Failed to verify invitation").WithInternalError(err).WithInternalMessage("Failed to update status on successful verification")
+				}
 			}
 			return sendJSON(w, http.StatusOK, VerifyInvitationResponse{TigrisNamespace: invitation.TigrisNamespace, TigrisNamespaceName: invitation.TigrisNamespaceName, Role: invitation.Role})
 		}

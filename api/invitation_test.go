@@ -129,7 +129,7 @@ func (ts *InvitationTestSuite) TestInvitationVerification() {
 	invitations := listInvitations(ts, "org_a")
 	require.Equal(ts.T(), 1, len(invitations))
 	code := invitations[0].Code
-	req := invitationVerificationRequest(ts, email, code)
+	req := invitationVerificationRequest(ts, email, code, false)
 
 	w1 := httptest.NewRecorder()
 
@@ -143,17 +143,43 @@ func (ts *InvitationTestSuite) TestInvitationVerification() {
 	// with invalid code
 	w2 := httptest.NewRecorder()
 
-	reqWithInvalidCode := invitationVerificationRequest(ts, email, "invalid")
+	reqWithInvalidCode := invitationVerificationRequest(ts, email, "invalid", false)
 	ts.API.handler.ServeHTTP(w2, reqWithInvalidCode)
 	require.Equal(ts.T(), http.StatusUnauthorized, w2.Code)
 }
 
-func invitationVerificationRequest(ts *InvitationTestSuite, email string, code string) *http.Request {
+// TestInvitationVerificationDry tests API /invitation/verify route
+func (ts *InvitationTestSuite) TestInvitationVerificationDry() {
+	email := "abc@test.com"
+	_ = createInvitation(ts, "abc@test.com", "editor", "org_a", "org_a_display_name", "google2|123", "org_a admin username", time.Now().UnixMilli()+86400*1000)
+
+	// list invitations for org_a
+	invitations := listInvitations(ts, "org_a")
+	require.Equal(ts.T(), 1, len(invitations))
+	code := invitations[0].Code
+
+	// when dry flag is used, the invitation doesn't get marked as accepted.
+	for i := 0; i < 5; i++ {
+		req := invitationVerificationRequest(ts, email, code, true)
+
+		w1 := httptest.NewRecorder()
+
+		ts.API.handler.ServeHTTP(w1, req)
+		require.Equal(ts.T(), http.StatusOK, w1.Code)
+		data := VerifyInvitationResponse{}
+		require.NoError(ts.T(), json.NewDecoder(w1.Body).Decode(&data))
+		require.Equal(ts.T(), "org_a", data.TigrisNamespace)
+		require.Equal(ts.T(), "org_a_display_name", data.TigrisNamespaceName)
+	}
+}
+
+func invitationVerificationRequest(ts *InvitationTestSuite, email string, code string, dry bool) *http.Request {
 	// Request body
 	var buffer bytes.Buffer
 	require.NoError(ts.T(), json.NewEncoder(&buffer).Encode(map[string]interface{}{
 		"email": email,
 		"code":  code,
+		"dry":   dry,
 	}))
 	req := httptest.NewRequest(http.MethodPost, "/invitations/verify", &buffer)
 	req.Header.Set("Content-Type", "application/json")
