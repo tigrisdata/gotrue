@@ -85,9 +85,11 @@ type GlobalConfiguration struct {
 }
 
 type InvitationConfiguration struct {
-	CodeLength int    `json:"code_length" default:"30"`
-	CodePrefix string `json:"code_prefix" default:"ti_"`
-	HideCode   bool   `json:"hide_code" default:"false"`
+	CodeLength int `json:"code_length" default:"30"`
+	// allows the delay of leeway seconds in expiration of the invitation code
+	LeewaySecond int    `json:"leeway_second" default:"300"`
+	CodePrefix   string `json:"code_prefix" default:"ti_"`
+	HideCode     bool   `json:"hide_code" default:"false"`
 }
 
 // EmailContentConfiguration holds the configuration for emails, both subjects and template URLs.
