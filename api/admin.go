@@ -202,16 +202,13 @@ func (a *API) adminUserCreate(w http.ResponseWriter, r *http.Request) error {
 			return terr
 		}
 
-		_, terr := tigris.GetCollection[models.User](a.db).Insert(ctx, user)
-		if terr != nil {
-			return terr
-		}
-
 		role := config.JWT.DefaultGroupName
 		if params.Role != "" {
 			role = params.Role
 		}
-		if terr := user.SetRole(ctx, a.db, role); terr != nil {
+		user.Role = role
+		_, terr := tigris.GetCollection[models.User](a.db).Insert(ctx, user)
+		if terr != nil {
 			return terr
 		}
 
