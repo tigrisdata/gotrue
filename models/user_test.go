@@ -206,7 +206,7 @@ func (ts *UserTestSuite) createUser() *User {
 }
 
 func (ts *UserTestSuite) createUserWithEmail(email string) *User {
-	user, err := NewUserWithAppData(uuid.Nil, email, "secret", "test", nil, UserAppMetadata{
+	user, err := NewUserWithAppData(uuid.Nil, email, "secret", "test", "test_role", nil, UserAppMetadata{
 		Name:            "test",
 		Description:     "test",
 		Provider:        "email",

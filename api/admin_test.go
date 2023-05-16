@@ -212,7 +212,7 @@ func (ts *AdminTestSuite) TestAdminUsers_SortAsc() {
 func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
 	// enable test once sorting is implemented
 	ts.T().Skip()
-	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test",
 		TigrisProject:   "test",
 		Name:            "test",
@@ -248,7 +248,7 @@ func (ts *AdminTestSuite) TestAdminUsers_SortDesc() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
-	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test",
 		TigrisProject:   "test",
 		Name:            "test",
@@ -280,7 +280,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterEmail() {
 
 // TestAdminUsers tests API /admin/users route
 func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
-	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test",
 		TigrisProject:   "test",
 		Name:            "test",
@@ -313,7 +313,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterName() {
 // TestAdminUsers_FilterTigrisProject tests API /admin/users route - creates 3 users for a test_namespace with different projects and queries them by tigris_project
 func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	// first user
-	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u, err := models.NewUserWithAppData(ts.instanceID, "test1@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test_namespace",
 		TigrisProject:   "test2",
 		Name:            "test",
@@ -325,7 +325,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	require.NoError(ts.T(), err, "Error creating user")
 
 	// second user
-	u2, err := models.NewUserWithAppData(ts.instanceID, "test2@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u2, err := models.NewUserWithAppData(ts.instanceID, "test2@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test_namespace",
 		TigrisProject:   "test3",
 		Name:            "test",
@@ -336,7 +336,7 @@ func (ts *AdminTestSuite) TestAdminUsers_FilterTigrisProject() {
 	require.NoError(ts.T(), err, "Error creating user")
 
 	// third user without project field
-	u3, err := models.NewUserWithAppData(ts.instanceID, "test3@example.com", "test", ts.Config.JWT.Aud, nil, models.UserAppMetadata{
+	u3, err := models.NewUserWithAppData(ts.instanceID, "test3@example.com", "test", ts.Config.JWT.Aud, "test_role", nil, models.UserAppMetadata{
 		TigrisNamespace: "test_namespace",
 		Name:            "test",
 		Provider:        "email",
