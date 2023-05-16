@@ -195,7 +195,7 @@ func (a *API) VerifyInvitation(w http.ResponseWriter, r *http.Request) error {
 	defer itr.Close()
 	var invitation models.Invitation
 	for itr.Next(&invitation) {
-		if invitation.Code == params.Code && time.Now().UnixMilli() <= invitation.ExpirationTime && invitation.Status == InvitationStatusPending {
+		if invitation.Code == params.Code && time.Now().UnixMilli() <= (invitation.ExpirationTime+int64(a.config.InvitationConfig.LeewaySecond)*1000) && invitation.Status == InvitationStatusPending {
 			// mark invitation as accepted, if not dry
 			if !params.Dry {
 				invitation.Status = InvitationStatusAccepted

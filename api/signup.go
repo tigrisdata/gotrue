@@ -14,6 +14,7 @@ import (
 type SignupParams struct {
 	Email    string                 `json:"email"`
 	Password string                 `json:"password"`
+	Role     string                 `json:"role"`
 	Data     map[string]interface{} `json:"data"`
 	AppData  models.UserAppMetadata `json:"app_data"`
 	Provider string                 `json:"-"`
@@ -100,7 +101,7 @@ func (a *API) signupNewUser(ctx context.Context, params *SignupParams) (*models.
 	instanceID := getInstanceID(ctx)
 	config := a.getConfig(ctx)
 
-	user, err := models.NewUserWithAppData(instanceID, params.Email, params.Password, params.Aud, params.Data, params.AppData, a.encrypter)
+	user, err := models.NewUserWithAppData(instanceID, params.Email, params.Password, params.Aud, params.Role, params.Data, params.AppData, a.encrypter)
 	if err != nil {
 		return nil, internalServerError("Database error creating user").WithInternalError(err)
 	}

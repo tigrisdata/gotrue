@@ -88,7 +88,7 @@ func NewUser(instanceID uuid.UUID, email, password, aud string, userData map[str
 }
 
 // NewUserWithAppData initializes a new user from an email, password and user data.
-func NewUserWithAppData(instanceID uuid.UUID, email, password, aud string, userData map[string]interface{}, appData UserAppMetadata, encrypter *crypto.AESBlockEncrypter) (*User, error) {
+func NewUserWithAppData(instanceID uuid.UUID, email, password, aud string, role string, userData map[string]interface{}, appData UserAppMetadata, encrypter *crypto.AESBlockEncrypter) (*User, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return nil, errors.Wrap(err, "Error generating unique id")
@@ -175,7 +175,7 @@ func (u *User) IsConfirmed() bool {
 func (u *User) SetRole(ctx context.Context, database *tigris.Database, roleName string) error {
 	u.Role = strings.TrimSpace(roleName)
 
-	_, err := tigris.GetCollection[User](database).Update(ctx, filter.Eq("id", u.ID.String()), fields.Set("role", u.Role))
+	_, err := tigris.GetCollection[User](database).Update(ctx, filter.Eq("email", u.Email), fields.Set("role", u.Role))
 	return err
 }
 
