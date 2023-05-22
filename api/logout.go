@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/models"
 	"context"
 )
 

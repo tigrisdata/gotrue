@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/api"
-	"github.com/netlify/gotrue/conf"
+	"github.com/tigrisdata/gotrue/api"
+	"github.com/tigrisdata/gotrue/conf"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/tigrisdata/tigris-client-go/tigris"

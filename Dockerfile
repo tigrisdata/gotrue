@@ -5,27 +5,27 @@ ENV GOOS=linux
 
 RUN apk add --no-cache make git
 
-WORKDIR /go/src/github.com/netlify/gotrue
+WORKDIR /go/src/github.com/tigrisdata/gotrue
 
 # Pulling dependencies
 COPY ./Makefile ./go.* ./
 RUN make deps
 
 # Building stuff
-COPY . /go/src/github.com/netlify/gotrue
+COPY . /go/src/github.com/tigrisdata/gotrue
 RUN make build
 
 FROM alpine:3.17.3
-RUN adduser -D -u 1000 netlify
+RUN adduser -D -u 1000 tigris
 
 RUN apk add --no-cache ca-certificates
-COPY --from=build /go/src/github.com/netlify/gotrue/gotrue /usr/local/bin/gotrue
+COPY --from=build /go/src/github.com/tigrisdata/gotrue/gotrue /usr/local/bin/gotrue
 
-COPY hack/jwt.test.key /home/netlify/keys/jwt.test.key
-COPY hack/jwt.test.key.pub /home/netlify/keys/jwt.test.key.pub
+COPY hack/jwt.test.key /home/tigris/keys/jwt.test.key
+COPY hack/jwt.test.key.pub /home/tigris/keys/jwt.test.key.pub
 
-COPY hack/create_user.sh /home/netlify/create_user.sh
-RUN ["chmod", "+x", "/home/netlify/create_user.sh"]
+COPY hack/create_user.sh /home/tigris/create_user.sh
+RUN ["chmod", "+x", "/home/tigris/create_user.sh"]
 
-USER netlify
-CMD ["/bin/sh","-c", "/home/netlify/create_user.sh && gotrue"]
+USER tigris
+CMD ["/bin/sh","-c", "/home/tigris/create_user.sh && gotrue"]

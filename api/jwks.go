@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/netlify/gotrue/conf"
+	"github.com/tigrisdata/gotrue/conf"
 	"github.com/pkg/errors"
 )
 

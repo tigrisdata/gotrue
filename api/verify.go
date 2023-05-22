@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/models"
 )
 
 const (

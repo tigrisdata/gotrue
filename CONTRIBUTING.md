@@ -11,7 +11,7 @@ please read the [code of conduct](CODE_OF_CONDUCT.md).
 GoTrue uses the Go Modules support built into Go 1.11 to build. The easiest is to clone GoTrue in a directory outside of GOPATH, as in the following example:
 
 ```sh
-$ git clone https://github.com/netlify/gotrue
+$ git clone https://github.com/tigrisdata/gotrue
 $ cd gotrue
 $ make deps
 ```

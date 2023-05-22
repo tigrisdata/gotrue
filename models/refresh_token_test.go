@@ -6,9 +6,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/crypto"
-	"github.com/netlify/gotrue/storage/test"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/crypto"
+	"github.com/tigrisdata/gotrue/storage/test"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"

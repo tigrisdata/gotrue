@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/netlify/gotrue/mailer"
+	"github.com/tigrisdata/gotrue/mailer"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	tconf "github.com/tigrisdata/tigris-client-go/config"
@@ -9,9 +9,9 @@ import (
 
 	"context"
 
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
-	"github.com/netlify/gotrue/storage"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
+	"github.com/tigrisdata/gotrue/storage"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
