@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/netlify/gotrue/api/provider"
+	"github.com/tigrisdata/gotrue/api/provider"
 )
 
 // loadOAuthState parses the `state` query parameter as a JWS payload,

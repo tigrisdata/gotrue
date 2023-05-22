@@ -6,8 +6,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/crypto"
-	"github.com/netlify/gotrue/storage/namespace"
+	"github.com/tigrisdata/gotrue/crypto"
+	"github.com/tigrisdata/gotrue/storage/namespace"
 	"github.com/pkg/errors"
 	"github.com/tigrisdata/tigris-client-go/fields"
 	"github.com/tigrisdata/tigris-client-go/filter"

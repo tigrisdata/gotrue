@@ -3,8 +3,8 @@ package models_test
 import (
 	"testing"
 
-	"github.com/netlify/gotrue/models"
-	"github.com/netlify/gotrue/storage/namespace"
+	"github.com/tigrisdata/gotrue/models"
+	"github.com/tigrisdata/gotrue/storage/namespace"
 	"github.com/stretchr/testify/assert"
 )
 

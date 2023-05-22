@@ -6,8 +6,8 @@ import (
 	"net/url"
 
 	"github.com/customerio/go-customerio"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/rs/zerolog/log"
 )
 

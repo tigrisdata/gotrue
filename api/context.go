@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v4"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
 )
 
 type contextKey string

@@ -15,8 +15,8 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/tigrisdata/tigris-client-go/tigris"

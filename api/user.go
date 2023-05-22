@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/models"
 )
 
 // UserUpdateParams parameters for updating a user

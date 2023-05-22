@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
-	"github.com/netlify/gotrue/storage/test"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
+	"github.com/tigrisdata/gotrue/storage/test"
 	"github.com/stretchr/testify/require"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )

@@ -12,8 +12,8 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

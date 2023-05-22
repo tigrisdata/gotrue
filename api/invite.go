@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/models"
 )
 
 // InviteParams are the parameters the Signup endpoint accepts

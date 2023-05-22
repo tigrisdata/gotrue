@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/storage/namespace"
+	"github.com/tigrisdata/gotrue/storage/namespace"
 )
 
 // Invitation tigris specific user invitation

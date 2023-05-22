@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/models"
 	filter2 "github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )

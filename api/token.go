@@ -11,9 +11,9 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwa"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/metering"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/metering"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/rs/zerolog/log"
 )
 

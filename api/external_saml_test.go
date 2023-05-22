@@ -17,8 +17,8 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/russellhaering/gosaml2/types"
 	dsig "github.com/russellhaering/goxmldsig"
 	"github.com/stretchr/testify/require"

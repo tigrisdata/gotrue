@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/storage"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/storage"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 	"context"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/netlify/gotrue/conf"
-	"github.com/netlify/gotrue/crypto"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/conf"
+	"github.com/tigrisdata/gotrue/crypto"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/tigrisdata/tigris-client-go/fields"

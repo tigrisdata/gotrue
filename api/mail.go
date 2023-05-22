@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/netlify/gotrue/crypto"
-	"github.com/netlify/gotrue/mailer"
-	"github.com/netlify/gotrue/models"
+	"github.com/tigrisdata/gotrue/crypto"
+	"github.com/tigrisdata/gotrue/mailer"
+	"github.com/tigrisdata/gotrue/models"
 	"github.com/pkg/errors"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 	"github.com/tigrisdata/tigris-client-go/filter"

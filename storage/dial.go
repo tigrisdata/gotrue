@@ -6,7 +6,7 @@ import (
 
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/netlify/gotrue/conf"
+	"github.com/tigrisdata/gotrue/conf"
 	"github.com/rs/zerolog/log"
 	tconf "github.com/tigrisdata/tigris-client-go/config"
 	"github.com/tigrisdata/tigris-client-go/driver"
