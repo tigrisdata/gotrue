@@ -195,7 +195,7 @@ func generateAccessToken(user *models.User, expiresIn time.Duration, config *con
 	var tigrisClaims = make(map[string]interface{})
 	// superadmin doesn't have app metadata
 	if user.AppMetaData != nil {
-		tigrisClaims := map[string]interface{}{
+		tigrisClaims = map[string]interface{}{
 			"nc": user.AppMetaData.TigrisNamespace,
 			"p":  user.AppMetaData.TigrisProject,
 		}
