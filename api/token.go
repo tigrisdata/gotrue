@@ -11,10 +11,10 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwa"
+	"github.com/rs/zerolog/log"
 	"github.com/tigrisdata/gotrue/conf"
 	"github.com/tigrisdata/gotrue/metering"
 	"github.com/tigrisdata/gotrue/models"
-	"github.com/rs/zerolog/log"
 )
 
 // GoTrueClaims is a struct that used for JWT claims
@@ -195,9 +195,21 @@ func generateAccessToken(user *models.User, expiresIn time.Duration, config *con
 	var tigrisClaims = make(map[string]interface{})
 	// superadmin doesn't have app metadata
 	if user.AppMetaData != nil {
-		tigrisClaims = map[string]interface{}{
-			"nc": user.AppMetaData.TigrisNamespace,
-			"p":  user.AppMetaData.TigrisProject,
+		// while we migrate to RBAC - put a check
+		if len(user.AppMetaData.Roles) > 0 {
+			if len(user.AppMetaData.Roles) > 1 {
+				log.Error().Int("number_of_roles", len(user.AppMetaData.Roles)).Str("email", user.Email).Msg("Multiple roles found")
+			}
+			tigrisClaims = map[string]interface{}{
+				"nc": user.AppMetaData.TigrisNamespace,
+				"p":  user.AppMetaData.TigrisProject,
+				"r":  user.AppMetaData.Roles[0],
+			}
+		} else {
+			tigrisClaims = map[string]interface{}{
+				"nc": user.AppMetaData.TigrisNamespace,
+				"p":  user.AppMetaData.TigrisProject,
+			}
 		}
 	}
 	claims := &GoTrueClaims{
