@@ -195,11 +195,11 @@ func generateAccessToken(user *models.User, expiresIn time.Duration, config *con
 	var tigrisClaims = make(map[string]interface{})
 	// superadmin doesn't have app metadata
 	if user.AppMetaData != nil {
-		// while we migrate to RBAC - put a check
 		tigrisClaims := map[string]interface{}{
 			"nc": user.AppMetaData.TigrisNamespace,
 			"p":  user.AppMetaData.TigrisProject,
 		}
+		// while we migrate to RBAC - put a check
 		if len(user.AppMetaData.Roles) > 0 {
 			if len(user.AppMetaData.Roles) > 1 {
 				log.Error().Int("number_of_roles", len(user.AppMetaData.Roles)).Str("email", user.Email).Msg("Multiple roles found")
