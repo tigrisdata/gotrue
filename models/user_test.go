@@ -6,11 +6,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/gotrue/conf"
 	"github.com/tigrisdata/gotrue/crypto"
 	"github.com/tigrisdata/gotrue/storage/test"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 	"github.com/tigrisdata/tigris-client-go/tigris"
 )
 
@@ -113,7 +113,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 	u := ts.createUser()
 
 	ctx := context.TODO()
-	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "", "test", "", "test", ts.encrypter)
+	n, err := FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, nil, "", "test", "", "test", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 
@@ -121,7 +121,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 		Page:    1,
 		PerPage: 50,
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", "test", ts.encrypter)
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, &p, nil, "", "", "", "test", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 1)
 	//ToDo: pagination related
@@ -132,7 +132,7 @@ func (ts *UserTestSuite) TestFindUsersInAudience() {
 			SortField{Name: "created_at", Dir: Descending},
 		},
 	}
-	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", "", ts.encrypter)
+	n, err = FindUsersInAudience(ctx, ts.db, u.InstanceID, u.Aud, nil, sp, "", "", "", "", "", ts.encrypter)
 	require.NoError(ts.T(), err)
 	require.Len(ts.T(), n, 0)
 }

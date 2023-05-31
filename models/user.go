@@ -3,14 +3,15 @@ package models
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tigrisdata/gotrue/crypto"
-	"github.com/tigrisdata/gotrue/storage/namespace"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/tigrisdata/gotrue/crypto"
+	"github.com/tigrisdata/gotrue/storage/namespace"
 	"github.com/tigrisdata/tigris-client-go/fields"
 	"github.com/tigrisdata/tigris-client-go/filter"
 	"github.com/tigrisdata/tigris-client-go/tigris"
@@ -20,6 +21,11 @@ const SystemUserID = "0"
 
 var SystemUserUUID = uuid.Nil
 
+const (
+	CredentialsKeyType = "credentials"
+	ApiKeyKeyType      = "api_key"
+)
+
 type UserAppMetadata struct {
 	TigrisNamespace string   `json:"tigris_namespace,omitempty"`
 	TigrisProject   string   `json:"tigris_project,omitempty"`
@@ -28,6 +34,7 @@ type UserAppMetadata struct {
 	Description     string   `json:"description,omitempty"`
 	Provider        string   `json:"provider,omitempty"`
 	Roles           []string `json:"roles,omitempty"`
+	KeyType         string   `json:"key_type,omitempty"`
 	Custom          JSONMap  `json:"custom,omitempty"`
 }
 
@@ -402,7 +409,7 @@ func FindUserWithRefreshToken(ctx context.Context, database *tigris.Database, to
 }
 
 // FindUsersInAudience finds users with the matching audience.
-func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string, tigrisNamespace string, createdBy string, tigrisProject string, encrypter *crypto.AESBlockEncrypter) ([]*User, error) {
+func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanceID uuid.UUID, aud string, pageParams *Pagination, sortParams *SortParams, qfilter string, tigrisNamespace string, createdBy string, tigrisProject string, keyTypeFilter string, encrypter *crypto.AESBlockEncrypter) ([]*User, error) {
 	//ToDo: sorting
 	/**
 	if sortParams != nil && len(sortParams.Fields) > 0 {
@@ -444,6 +451,22 @@ func FindUsersInAudience(ctx context.Context, database *tigris.Database, instanc
 		if u.AppMetaData == nil || u.AppMetaData.TigrisProject != tigrisProject {
 			continue
 		}
+		fmt.Println(u.AppMetaData)
+		// Note: handling this filtering on client side as to filter on nonexisting field is an open issue on Tigris.
+		if keyTypeFilter != "" {
+			if keyTypeFilter == CredentialsKeyType {
+				// app metadata either has to contain this field with this exact value or it must not have this field for backward copatibility
+				if !(u.AppMetaData.KeyType == "" || u.AppMetaData.KeyType == CredentialsKeyType) {
+					continue
+				}
+			} else if keyTypeFilter == ApiKeyKeyType {
+				// app metadata either has to contain this field with this exact value
+				if u.AppMetaData.KeyType != ApiKeyKeyType {
+					continue
+				}
+			}
+		}
+
 		// either the project field doesn't exist - this is required for backward compatibility
 		// or it has to match the requested project name
 		u.EncryptedPassword = encrypter.Decrypt(u.EncryptedPassword, u.EncryptionIV)
