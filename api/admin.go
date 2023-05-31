@@ -70,8 +70,9 @@ func (a *API) adminUsers(w http.ResponseWriter, r *http.Request) error {
 	namespaceFilter := r.URL.Query().Get("tigris_namespace")
 	createdByFilter := r.URL.Query().Get("created_by")
 	projectFilter := r.URL.Query().Get("tigris_project")
+	keyTypeFilter := r.URL.Query().Get("key_type")
 
-	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter, namespaceFilter, createdByFilter, projectFilter, a.encrypter)
+	users, err := models.FindUsersInAudience(ctx, a.db, instanceID, aud, pageParams, sortParams, filter, namespaceFilter, createdByFilter, projectFilter, keyTypeFilter, a.encrypter)
 	if err != nil {
 		return internalServerError("Database error finding users").WithInternalError(err)
 	}
@@ -86,7 +87,8 @@ func (a *API) adminUsers(w http.ResponseWriter, r *http.Request) error {
 // adminUserGet returns information about a single user
 func (a *API) adminUserGet(w http.ResponseWriter, r *http.Request) error {
 	user := getUser(r.Context())
-
+	// decrypt
+	user.EncryptedPassword = a.encrypter.Decrypt(user.EncryptedPassword, user.EncryptionIV)
 	return sendJSON(w, http.StatusOK, user)
 }
 
